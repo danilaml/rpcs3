@@ -28,6 +28,8 @@ using namespace ppu_recompiler_llvm;
 #error "ID Manager cannot be used in this module"
 #endif
 
+//#define PPU_LLVM_FALLBACK 1
+
 u64  Compiler::s_rotate_mask[64][64];
 bool Compiler::s_rotate_mask_inited = false;
 
@@ -111,6 +113,8 @@ Executable Compiler::Compile(const std::string & name, const ControlFlowGraph & 
     auto arg_i = m_state.function->arg_begin();
     arg_i->setName("ppu_state");
     m_state.args[CompileTaskState::Args::State] = arg_i;
+    (++arg_i)->setName("interpreter");
+    m_state.args[CompileTaskState::Args::Interpreter] = arg_i;
     (++arg_i)->setName("context");
     m_state.args[CompileTaskState::Args::Context] = arg_i;
 
@@ -184,7 +188,7 @@ Executable Compiler::Compile(const std::string & name, const ControlFlowGraph & 
             m_ir_builder->SetInsertPoint(then_bb);
             context_i64 = m_ir_builder->CreateZExt(ret_i32, m_ir_builder->getInt64Ty());
             context_i64 = m_ir_builder->CreateOr(context_i64, (u64)cfg.function_address << 32);
-            m_ir_builder->CreateCall2(m_execute_unknown_block, m_state.args[CompileTaskState::Args::State], context_i64);
+            m_ir_builder->CreateCall3(m_execute_unknown_block, m_state.args[CompileTaskState::Args::State], m_state.args[CompileTaskState::Args::Interpreter], context_i64);
             m_ir_builder->CreateBr(merge_bb);
 
             m_ir_builder->SetInsertPoint(merge_bb);
@@ -210,7 +214,7 @@ Executable Compiler::Compile(const std::string & name, const ControlFlowGraph & 
             m_ir_builder->SetInsertPoint(then_bb);
             auto context_i64 = m_ir_builder->CreateZExt(exit_instr_i32, m_ir_builder->getInt64Ty());
             context_i64      = m_ir_builder->CreateOr(context_i64, (u64)cfg.function_address << 32);
-            m_ir_builder->CreateCall2(m_execute_unknown_block, m_state.args[CompileTaskState::Args::State], context_i64);
+            m_ir_builder->CreateCall3(m_execute_unknown_block, m_state.args[CompileTaskState::Args::State], m_state.args[CompileTaskState::Args::Interpreter], context_i64);
             m_ir_builder->CreateBr(merge_bb);
 
             m_ir_builder->SetInsertPoint(merge_bb);
@@ -1205,12 +1209,16 @@ void Compiler::VMULOUH(u32 vd, u32 va, u32 vb) {
 }
 
 void Compiler::VNMSUBFP(u32 vd, u32 va, u32 vc, u32 vb) {
-    auto va_v4f32  = GetVrAsFloatVec(va);
-    auto vb_v4f32  = GetVrAsFloatVec(vb);
-    auto vc_v4f32  = GetVrAsFloatVec(vc);
-    vc_v4f32       = m_ir_builder->CreateFNeg(vc_v4f32);
-    auto res_v4f32 = (Value *)m_ir_builder->CreateCall3(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, VectorType::get(m_ir_builder->getFloatTy(), 4)), va_v4f32, vc_v4f32, vb_v4f32);
-    SetVr(vd, res_v4f32);
+#ifdef PPU_LLVM_FALLBACK
+	InterpreterCall("VNMSUBFP", &PPUInterpreter::VNMSUBFP, vd, va, vc, vb);
+#else
+	auto va_v4f32  = GetVrAsFloatVec(va);
+	auto vb_v4f32  = GetVrAsFloatVec(vb);
+	auto vc_v4f32  = GetVrAsFloatVec(vc);
+	vc_v4f32       = m_ir_builder->CreateFNeg(vc_v4f32);
+	auto res_v4f32 = (Value *)m_ir_builder->CreateCall3(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, VectorType::get(m_ir_builder->getFloatTy(), 4)), va_v4f32, vc_v4f32, vb_v4f32);
+	SetVr(vd, res_v4f32);
+#endif // PPU_LLVM_FALLBACK;
 }
 
 void Compiler::VNOR(u32 vd, u32 va, u32 vb) {
@@ -1369,9 +1377,14 @@ void Compiler::VPKUWUS(u32 vd, u32 va, u32 vb) {
 }
 
 void Compiler::VREFP(u32 vd, u32 vb) {
-    auto vb_v4f32  = GetVrAsFloatVec(vb);
-    auto res_v4f32 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse_rcp_ps), vb_v4f32);
-    SetVr(vd, res_v4f32);
+#ifdef PPU_LLVM_FALLBACK
+	InterpreterCall("VREFP", &PPUInterpreter::VREFP, vd, vb);
+#else
+	auto vb_v4f32  = GetVrAsFloatVec(vb);
+	auto res_v4f32 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse_rcp_ps), vb_v4f32);
+	SetVr(vd, res_v4f32);  
+#endif // PPU_LLVM_FALLBACK
+
 }
 
 void Compiler::VRFIM(u32 vd, u32 vb) {
@@ -1432,10 +1445,15 @@ void Compiler::VRLW(u32 vd, u32 va, u32 vb) {
 }
 
 void Compiler::VRSQRTEFP(u32 vd, u32 vb) {
-    auto vb_v4f32  = GetVrAsFloatVec(vb);
-    auto res_v4f32 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::sqrt, VectorType::get(m_ir_builder->getFloatTy(), 4)), vb_v4f32);
-    res_v4f32      = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse_rcp_ps), res_v4f32);
-    SetVr(vd, res_v4f32);
+#ifdef PPU_LLVM_FALLBACK
+	InterpreterCall("VRSQRTEFP", &PPUInterpreter::VRSQRTEFP, vd, vb);
+#else
+	auto vb_v4f32  = GetVrAsFloatVec(vb);
+	auto res_v4f32 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::sqrt, VectorType::get(m_ir_builder->getFloatTy(), 4)), vb_v4f32);
+	res_v4f32      = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse_rcp_ps), res_v4f32);
+	SetVr(vd, res_v4f32);  
+#endif // PPU_LLVM_FALLBACK
+
 }
 
 void Compiler::VSEL(u32 vd, u32 va, u32 vb, u32 vc) {
@@ -1726,24 +1744,29 @@ void Compiler::VSUBUWS(u32 vd, u32 va, u32 vb) {
 }
 
 void Compiler::VSUMSWS(u32 vd, u32 va, u32 vb) {
-    auto va_v4i32 = GetVrAsIntVec(va, 32);
-    auto vb_v4i32 = GetVrAsIntVec(vb, 32);
+#ifdef PPU_LLVM_FALLBACK
+	InterpreterCall("VSUMSWS", &PPUInterpreter::VSUMSWS, vd, va, vb);
+#else
+	auto va_v4i32 = GetVrAsIntVec(va, 32);
+	auto vb_v4i32 = GetVrAsIntVec(vb, 32);
 
-    auto res_i32 = m_ir_builder->CreateExtractElement(vb_v4i32, m_ir_builder->getInt32(3));
-    auto res_i64 = m_ir_builder->CreateSExt(res_i32, m_ir_builder->getInt64Ty());
-    for (auto i = 0; i < 4; i++) {
-        auto va_i32 = m_ir_builder->CreateExtractElement(va_v4i32, m_ir_builder->getInt32(i));
-        auto va_i64 = m_ir_builder->CreateSExt(va_i32, m_ir_builder->getInt64Ty());
-        res_i64     = m_ir_builder->CreateAdd(res_i64, va_i64);
-    }
+	auto res_i32 = m_ir_builder->CreateExtractElement(vb_v4i32, m_ir_builder->getInt32(3));
+	auto res_i64 = m_ir_builder->CreateSExt(res_i32, m_ir_builder->getInt64Ty());
+	for (auto i = 0; i < 4; i++) {
+	    auto va_i32 = m_ir_builder->CreateExtractElement(va_v4i32, m_ir_builder->getInt32(i));
+	    auto va_i64 = m_ir_builder->CreateSExt(va_i32, m_ir_builder->getInt64Ty());
+	    res_i64     = m_ir_builder->CreateAdd(res_i64, va_i64);
+	}
 
-    auto gt_i1    = m_ir_builder->CreateICmpSGT(res_i64, m_ir_builder->getInt64(0x7FFFFFFFull));
-    auto lt_i1    = m_ir_builder->CreateICmpSLT(res_i64, m_ir_builder->getInt64(0xFFFFFFFF80000000ull));
-    res_i64       = m_ir_builder->CreateSelect(gt_i1, m_ir_builder->getInt64(0x7FFFFFFFull), res_i64);
-    res_i64       = m_ir_builder->CreateSelect(lt_i1, m_ir_builder->getInt64(0xFFFFFFFF80000000ull), res_i64);
-    auto res_i128 = m_ir_builder->CreateZExt(res_i64, m_ir_builder->getIntNTy(128));
+	auto gt_i1    = m_ir_builder->CreateICmpSGT(res_i64, m_ir_builder->getInt64(0x7FFFFFFFull));
+	auto lt_i1    = m_ir_builder->CreateICmpSLT(res_i64, m_ir_builder->getInt64(0xFFFFFFFF80000000ull));
+	res_i64       = m_ir_builder->CreateSelect(gt_i1, m_ir_builder->getInt64(0x7FFFFFFFull), res_i64);
+	res_i64       = m_ir_builder->CreateSelect(lt_i1, m_ir_builder->getInt64(0xFFFFFFFF80000000ull), res_i64);
+	auto res_i128 = m_ir_builder->CreateZExt(res_i64, m_ir_builder->getIntNTy(128));
 
-    SetVr(vd, res_i128);
+	SetVr(vd, res_i128);  
+#endif // PPU_LLVM_FALLBACK
+
 
     // TODO: Set VSCR.SAT
 }
@@ -4341,16 +4364,21 @@ void Compiler::LWA(u32 rd, u32 ra, s32 ds) {
 }
 
 void Compiler::FDIVS(u32 frd, u32 fra, u32 frb, bool rc) {
-    auto ra_f64  = GetFpr(fra);
-    auto rb_f64  = GetFpr(frb);
-    auto res_f64 = m_ir_builder->CreateFDiv(ra_f64, rb_f64);
-    auto res_f32 = m_ir_builder->CreateFPTrunc(res_f64, m_ir_builder->getFloatTy());
-    SetFpr(frd, res_f32);
+#ifdef PPU_LLVM_FALLBACK
+	InterpreterCall("FDIVS", &PPUInterpreter::FDIVS, frd, fra, frb, rc);
+#else
+	auto ra_f64  = GetFpr(fra);
+	auto rb_f64  = GetFpr(frb);
+	auto res_f64 = m_ir_builder->CreateFDiv(ra_f64, rb_f64);
+	auto res_f32 = m_ir_builder->CreateFPTrunc(res_f64, m_ir_builder->getFloatTy());
+	SetFpr(frd, res_f32);
 
-    if (rc) {
-        // TODO: Implement this
-        CompilationError("FDIVS.");
-    }
+	if (rc) {
+	    // TODO: Implement this
+	    CompilationError("FDIVS.");
+	}  
+#endif // PPU_LLVM_FALLBACK
+
 
     // TODO: Set flags
 }
@@ -4371,44 +4399,59 @@ void Compiler::FSUBS(u32 frd, u32 fra, u32 frb, bool rc) {
 }
 
 void Compiler::FADDS(u32 frd, u32 fra, u32 frb, bool rc) {
-    auto ra_f64  = GetFpr(fra);
-    auto rb_f64  = GetFpr(frb);
-    auto res_f64 = m_ir_builder->CreateFAdd(ra_f64, rb_f64);
-    auto res_f32 = m_ir_builder->CreateFPTrunc(res_f64, m_ir_builder->getFloatTy());
-    SetFpr(frd, res_f32);
+#ifdef PPU_LLVM_FALLBACK
+	InterpreterCall("FADDS", &PPUInterpreter::FADDS, frd, fra, frb, rc);
+#else
+	auto ra_f64  = GetFpr(fra);
+	auto rb_f64  = GetFpr(frb);
+	auto res_f64 = m_ir_builder->CreateFAdd(ra_f64, rb_f64);
+	auto res_f32 = m_ir_builder->CreateFPTrunc(res_f64, m_ir_builder->getFloatTy());
+	SetFpr(frd, res_f32);
 
-    if (rc) {
-        // TODO: Implement this
-        CompilationError("FADDS.");
-    }
+	if (rc) {
+	    // TODO: Implement this
+	    CompilationError("FADDS.");
+	}  
+#endif // PPU_LLVM_FALLBACK
+
 
     // TODO: Set flags
 }
 
 void Compiler::FSQRTS(u32 frd, u32 frb, bool rc) {
-    auto rb_f64  = GetFpr(frb);
-    auto res_f64 = (Value *)m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::sqrt, m_ir_builder->getDoubleTy()), rb_f64);
-    auto res_f32 = m_ir_builder->CreateFPTrunc(res_f64, m_ir_builder->getFloatTy());
-    SetFpr(frd, res_f32);
+#ifdef PPU_LLVM_FALLBACK
+	InterpreterCall("FSQRTS", &PPUInterpreter::FSQRTS, frd, frb, rc);
+#else
+	auto rb_f64 = GetFpr(frb);
+	auto res_f64 = (Value *)m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::sqrt, m_ir_builder->getDoubleTy()), rb_f64);
+	auto res_f32 = m_ir_builder->CreateFPTrunc(res_f64, m_ir_builder->getFloatTy());
+	SetFpr(frd, res_f32);
 
-    if (rc) {
-        // TODO: Implement this
-        CompilationError("FSQRTS.");
-    }
+	if (rc) {
+		// TODO: Implement this
+		CompilationError("FSQRTS.");
+	}
+#endif // PPU_LLVM_FALLBACK
+
 
     // TODO: Set flags
 }
 
 void Compiler::FRES(u32 frd, u32 frb, bool rc) {
-    auto rb_f64  = GetFpr(frb);
-    auto res_f64 = m_ir_builder->CreateFDiv(ConstantFP::get(m_ir_builder->getDoubleTy(), 1.0), rb_f64);
-    auto res_f32 = m_ir_builder->CreateFPTrunc(res_f64, m_ir_builder->getFloatTy());
-    SetFpr(frd, res_f32);
+#ifdef PPU_LLVM_FALLBACK
+	InterpreterCall("FRES", &PPUInterpreter::FRES, frd, frb, rc);
+#else
+	auto rb_f64  = GetFpr(frb);
+	auto res_f64 = m_ir_builder->CreateFDiv(ConstantFP::get(m_ir_builder->getDoubleTy(), 1.0), rb_f64);
+	auto res_f32 = m_ir_builder->CreateFPTrunc(res_f64, m_ir_builder->getFloatTy());
+	SetFpr(frd, res_f32);
 
-    if (rc) {
-        // TODO: Implement this
-        CompilationError("FRES.");
-    }
+	if (rc) {
+	    // TODO: Implement this
+	    CompilationError("FRES.");
+	}  
+#endif // PPU_LLVM_FALLBACK
+
 
     // TODO: Set flags
 }
@@ -4462,36 +4505,46 @@ void Compiler::FMSUBS(u32 frd, u32 fra, u32 frc, u32 frb, bool rc) {
 }
 
 void Compiler::FNMSUBS(u32 frd, u32 fra, u32 frc, u32 frb, bool rc) {
-    auto ra_f64  = GetFpr(fra);
-    auto rb_f64  = GetFpr(frb);
-    auto rc_f64  = GetFpr(frc);
-    rb_f64       = m_ir_builder->CreateFNeg(rb_f64);
-    auto res_f64 = (Value *)m_ir_builder->CreateCall3(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), ra_f64, rc_f64, rb_f64);
-    res_f64      = m_ir_builder->CreateFNeg(res_f64);
-    auto res_f32 = m_ir_builder->CreateFPTrunc(res_f64, m_ir_builder->getFloatTy());
-    SetFpr(frd, res_f32);
+#ifdef PPU_LLVM_FALLBACK
+	InterpreterCall("FNMSUBS", &PPUInterpreter::FNMSUBS, frd, fra, frc, frb, rc);
+#else
+	auto ra_f64  = GetFpr(fra);
+	auto rb_f64  = GetFpr(frb);
+	auto rc_f64  = GetFpr(frc);
+	rb_f64       = m_ir_builder->CreateFNeg(rb_f64);
+	auto res_f64 = (Value *)m_ir_builder->CreateCall3(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), ra_f64, rc_f64, rb_f64);
+	res_f64      = m_ir_builder->CreateFNeg(res_f64);
+	auto res_f32 = m_ir_builder->CreateFPTrunc(res_f64, m_ir_builder->getFloatTy());
+	SetFpr(frd, res_f32);
 
-    if (rc) {
-        // TODO: Implement this
-        CompilationError("FNMSUBS.");
-    }
+	if (rc) {
+	    // TODO: Implement this
+	    CompilationError("FNMSUBS.");
+	}  
+#endif // PPU_LLVM_FALLBACK
+
 
     // TODO: Set flags
 }
 
 void Compiler::FNMADDS(u32 frd, u32 fra, u32 frc, u32 frb, bool rc) {
-    auto ra_f64  = GetFpr(fra);
-    auto rb_f64  = GetFpr(frb);
-    auto rc_f64  = GetFpr(frc);
-    auto res_f64 = (Value *)m_ir_builder->CreateCall3(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), ra_f64, rc_f64, rb_f64);
-    res_f64      = m_ir_builder->CreateFNeg(res_f64);
-    auto res_f32 = m_ir_builder->CreateFPTrunc(res_f64, m_ir_builder->getFloatTy());
-    SetFpr(frd, res_f32);
+#ifdef PPU_LLVM_FALLBACK
+	InterpreterCall("FNMADDS", &PPUInterpreter::FNMADDS, frd, fra, frc, frb, rc);
+#else
+	auto ra_f64  = GetFpr(fra);
+	auto rb_f64  = GetFpr(frb);
+	auto rc_f64  = GetFpr(frc);
+	auto res_f64 = (Value *)m_ir_builder->CreateCall3(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), ra_f64, rc_f64, rb_f64);
+	res_f64      = m_ir_builder->CreateFNeg(res_f64);
+	auto res_f32 = m_ir_builder->CreateFPTrunc(res_f64, m_ir_builder->getFloatTy());
+	SetFpr(frd, res_f32);
 
-    if (rc) {
-        // TODO: Implement this
-        CompilationError("FNMADDS.");
-    }
+	if (rc) {
+	    // TODO: Implement this
+	    CompilationError("FNMADDS.");
+	}  
+#endif // PPU_LLVM_FALLBACK
+
 
     // TODO: Set flags
 }
@@ -4704,6 +4757,7 @@ void Compiler::FSUB(u32 frd, u32 fra, u32 frb, bool rc) {
 }
 
 void Compiler::FADD(u32 frd, u32 fra, u32 frb, bool rc) {
+	//InterpreterCall("FADD", static_cast<void (PPUInterpreter::*)(u32, u32, u32, u32, bool)>(&PPUInterpreter::FMADD), frd, fra, frb, rc);
     auto ra_f64  = GetFpr(fra);
     auto rb_f64  = GetFpr(frb);
     auto res_f64 = m_ir_builder->CreateFAdd(ra_f64, rb_f64);
@@ -5454,7 +5508,7 @@ void Compiler::CreateBranch(llvm::Value * cmp_i1, llvm::Value * target_i32, bool
 
             auto switch_instr = m_ir_builder->CreateSwitch(target_i32, unknown_function_block);
             m_ir_builder->SetInsertPoint(unknown_function_block);
-            m_ir_builder->CreateCall2(m_execute_unknown_function, m_state.args[CompileTaskState::Args::State], m_ir_builder->getInt64(0));
+            m_ir_builder->CreateCall3(m_execute_unknown_function, m_state.args[CompileTaskState::Args::State], m_state.args[CompileTaskState::Args::Interpreter], m_ir_builder->getInt64(0));
             m_ir_builder->CreateBr(next_block);
 
             auto call_i = m_state.cfg->calls.find(m_state.current_instruction_address);
@@ -5517,6 +5571,11 @@ void Compiler::WriteMemory(Value * addr_i64, Value * val_ix, u32 alignment, bool
     m_ir_builder->CreateAlignedStore(val_ix, eaddr_ix_ptr, alignment);
 }
 
+template<class Func, class... Args>
+Value * Compiler::InterpreterCall(const char * name, Func function, Args... args) {
+	return Call<void>(name, function, m_state.args[CompileTaskState::Args::Interpreter], m_ir_builder->getInt32(args)...);
+}
+
 template<class T>
 Type * Compiler::CppToLlvmType() {
     if (std::is_void<T>::value) {
@@ -5565,7 +5624,7 @@ llvm::Value * Compiler::IndirectCall(u32 address, Value * context_i64, bool is_f
     auto location_i64_ptr = m_ir_builder->CreateIntToPtr(location_i64, m_ir_builder->getInt64Ty()->getPointerTo());
     auto executable_i64   = m_ir_builder->CreateLoad(location_i64_ptr);
     auto executable_ptr   = m_ir_builder->CreateIntToPtr(executable_i64, m_compiled_function_type->getPointerTo());
-    auto ret_i32          = m_ir_builder->CreateCall2(executable_ptr, m_state.args[CompileTaskState::Args::State], context_i64);
+    auto ret_i32          = m_ir_builder->CreateCall3(executable_ptr, m_state.args[CompileTaskState::Args::State], m_state.args[CompileTaskState::Args::Interpreter], context_i64);
 
     auto cmp_i1   = m_ir_builder->CreateICmpEQ(ret_i32, m_ir_builder->getInt32(0xFFFFFFFF));
     auto then_bb  = GetBasicBlockFromAddress(m_state.current_instruction_address, "then_all_fs");
@@ -5958,7 +6017,7 @@ ppu_recompiler_llvm::ExecutionEngine::~ExecutionEngine() {
 }
 
 u32 ppu_recompiler_llvm::ExecutionEngine::DecodeMemory(const u32 address) {
-    ExecuteFunction(&m_ppu, 0);
+    ExecuteFunction(&m_ppu,m_interpreter, 0);
     return 0;
 }
 
@@ -5999,13 +6058,13 @@ Executable ppu_recompiler_llvm::ExecutionEngine::GetExecutable(u32 address, Exec
     return executable;
 }
 
-u32 ppu_recompiler_llvm::ExecutionEngine::ExecuteFunction(PPUThread * ppu_state, u64 context) {
+u32 ppu_recompiler_llvm::ExecutionEngine::ExecuteFunction(PPUThread * ppu_state, PPUInterpreter * interpreter, u64 context) {
     auto execution_engine = (ExecutionEngine *)ppu_state->GetDecoder();
     execution_engine->m_tracer.Trace(Tracer::TraceType::EnterFunction, ppu_state->PC, 0);
-    return ExecuteTillReturn(ppu_state, 0);
+    return ExecuteTillReturn(ppu_state, interpreter, 0);
 }
 
-u32 ppu_recompiler_llvm::ExecutionEngine::ExecuteTillReturn(PPUThread * ppu_state, u64 context) {
+u32 ppu_recompiler_llvm::ExecutionEngine::ExecuteTillReturn(PPUThread * ppu_state, PPUInterpreter * interpreter, u64 context) {
     auto execution_engine = (ExecutionEngine *)ppu_state->GetDecoder();
     auto terminate        = false;
     auto branch_type      = BranchType::NonBranch;
@@ -6018,7 +6077,7 @@ u32 ppu_recompiler_llvm::ExecutionEngine::ExecuteTillReturn(PPUThread * ppu_stat
         auto executable = execution_engine->GetExecutable(ppu_state->PC, ExecuteTillReturn);
         if (executable != ExecuteTillReturn && executable != ExecuteFunction) {
             auto entry = ppu_state->PC;
-            auto exit  = (u32)executable(ppu_state, 0);
+            auto exit  = (u32)executable(ppu_state, interpreter, 0);
             execution_engine->m_tracer.Trace(Tracer::TraceType::ExitFromCompiledBlock, entry, exit);
             if (exit == 0) {
                 terminate = true;
@@ -6038,7 +6097,7 @@ u32 ppu_recompiler_llvm::ExecutionEngine::ExecuteTillReturn(PPUThread * ppu_stat
             case BranchType::FunctionCall:
                 execution_engine->m_tracer.Trace(Tracer::TraceType::CallFunction, ppu_state->PC, 0);
                 executable = execution_engine->GetExecutable(ppu_state->PC, ExecuteFunction);
-                executable(ppu_state, 0);
+                executable(ppu_state, interpreter, 0);
                 break;
             case BranchType::LocalBranch:
                 break;

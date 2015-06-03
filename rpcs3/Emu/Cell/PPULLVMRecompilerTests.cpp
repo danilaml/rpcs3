@@ -10,7 +10,7 @@
 
 #include <sstream>
 
-//#define PPU_LLVM_RECOMPILER_UNIT_TESTS 1           // Uncomment to enable tests
+#define PPU_LLVM_RECOMPILER_UNIT_TESTS 1           // Uncomment to enable tests
 //#define PPU_LLVM_RECOMPILER_UNIT_TESTS_VERBOSE 1   // Uncomment to print everything (even for passed tests)
 
 using namespace llvm;
@@ -292,6 +292,8 @@ void Compiler::RunTest(const char * name, std::function<void()> test_case, std::
     auto arg_i = m_state.function->arg_begin();
     arg_i->setName("ppu_state");
     m_state.args[CompileTaskState::Args::State] = arg_i;
+	(++arg_i)->setName("interpreter");
+	m_state.args[CompileTaskState::Args::Interpreter] = arg_i;
     (++arg_i)->setName("context");
     m_state.args[CompileTaskState::Args::Context] = arg_i;
     m_state.current_instruction_address = s_ppu_state->PC;
@@ -352,7 +354,7 @@ void Compiler::RunTest(const char * name, std::function<void()> test_case, std::
     // Run the test
     input();
     auto executable = (Executable)m_execution_engine->getPointerToFunction(m_state.function);
-    executable(s_ppu_state, 0);
+	executable(s_ppu_state, s_interpreter, 0);
 
     // Verify results
     std::string msg;
