@@ -285,10 +285,8 @@ std::shared_ptr<RecompilationEngine> RecompilationEngine::s_the_instance = nullp
 
 RecompilationEngine::RecompilationEngine()
     : m_log(nullptr)
-    , m_next_ordinal(0)
     , m_last_cache_clear_time(std::chrono::high_resolution_clock::now())
     , m_compiler(*this, CPUHybridDecoderRecompiler::ExecuteFunction, CPUHybridDecoderRecompiler::ExecuteTillReturn, CPUHybridDecoderRecompiler::PollStatus) {
-  memset(m_executable_engine, 0, sizeof(m_executable_engine) / sizeof(m_executable_engine[0]));
     m_compiler.RunAllTests();
 }
 
@@ -296,73 +294,30 @@ RecompilationEngine::~RecompilationEngine() {
     join();
 }
 
-u32 RecompilationEngine::AllocateOrdinal(u32 address, bool is_function) {
-    std::lock_guard<std::mutex> lock(m_address_to_ordinal_lock);
-
-    auto i = m_address_to_ordinal.find(address);
-    if (i == m_address_to_ordinal.end()) {
-        assert(m_next_ordinal < (sizeof(m_executable_lookup) / sizeof(m_executable_lookup[0])));
-
-        m_executable_lookup[m_next_ordinal] = is_function ? CPUHybridDecoderRecompiler::ExecuteFunction : CPUHybridDecoderRecompiler::ExecuteTillReturn;
-        std::atomic_thread_fence(std::memory_order_release);
-        i = m_address_to_ordinal.insert(m_address_to_ordinal.end(), std::make_pair(address, std::make_pair(m_next_ordinal++, 0)));
-    }
-
-    return i->second.first;
-}
-
-u32 RecompilationEngine::GetOrdinal(u32 address) const {
-    auto i = m_address_to_ordinal.find(address);
-    if (i != m_address_to_ordinal.end()) {
-        return i->second.first;
-    } else {
-        return 0xFFFFFFFF;
-    }
-}
-
-const Executable RecompilationEngine::GetExecutable(u32 ordinal) const {
-    std::atomic_thread_fence(std::memory_order_acquire);
-    return m_executable_lookup[ordinal];
-}
-
-u64 RecompilationEngine::GetAddressOfExecutableLookup() const {
-    return (u64)m_executable_lookup;
-}
-
 Executable RecompilationEngine::GetExecutable(u32 address, Executable default_executable) {
   std::lock_guard<std::mutex> lock(m_address_to_ordinal_lock);
   // Find the ordinal for the specified address and insert it to the cache
-  auto i = m_address_to_ordinal.find(address);
-  if (i == m_address_to_ordinal.end()) {
-    auto ordinal = GetOrdinal(address);
-    if (ordinal != 0xFFFFFFFF) {
-      i = m_address_to_ordinal.insert(m_address_to_ordinal.end(), std::make_pair(address, std::make_pair(ordinal, 0)));
-    }
-  }
-
-  Executable executable = default_executable;
-  if (i != m_address_to_ordinal.end()) {
-    i->second.second++;
-    executable = GetExecutable(i->second.first);
-  }
-
   RemoveUnusedEntriesFromCache();
-  return executable;
+  auto i = m_address_to_function.find(address);
+  if (i == m_address_to_function.end()) {
+    m_address_to_function[address] = std::make_tuple(default_executable, nullptr, 1);
+    return default_executable;
+  }
+
+
+  return std::get<0>(i->second);
 }
 
 void RecompilationEngine::RemoveUnusedEntriesFromCache() {
   auto now = std::chrono::high_resolution_clock::now();
   if (std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_cache_clear_time).count() > 10000) {
-    for (auto i = m_address_to_ordinal.begin(); i != m_address_to_ordinal.end();) {
+    for (auto i = m_address_to_function.begin(); i != m_address_to_function.end();) {
       auto tmp = i;
       i++;
-      if (tmp->second.second == 0) {
-        m_address_to_ordinal.erase(tmp);
-        FreeExecutable(tmp->second.first);
-      }
-      else {
-        tmp->second.second = 0;
-      }
+      if (std::get<2>(tmp->second) == 0)
+        m_address_to_function.erase(tmp);
+      else
+        std::get<2>(tmp->second) = 0;
     }
 
     m_last_cache_clear_time = now;
@@ -475,7 +430,6 @@ void RecompilationEngine::Task() {
     Log() << "    Time spent recompiling      = " << recompiling_time.count() / 1000000 << "ms\n";
     Log() << "    Time spent idling           = " << idling_time.count() / 1000000 << "ms\n";
     Log() << "    Time spent doing misc tasks = " << (total_time.count() - idling_time.count() - compiler_stats.total_time.count()) / 1000000 << "ms\n";
-    Log() << "Ordinals allocated              = " << m_next_ordinal << "\n";
 
     LOG_NOTICE(PPU, "PPU LLVM Recompilation thread exiting.");
     s_the_instance = nullptr; // Can cause deadlock if this is the last instance. Need to fix this.
@@ -571,13 +525,11 @@ void RecompilationEngine::CompileBlock(BlockEntry & block_entry) {
     Log() << "Compile: " << block_entry.ToString() << "\n";
     Log() << "CFG: " << block_entry.cfg.ToString() << "\n";
 
-    u32 ordinal    = AllocateOrdinal(block_entry.cfg.start_address, block_entry.IsFunction());
-
     std::pair<Executable, llvm::ExecutionEngine *> compileResult =
       m_compiler.Compile(fmt::Format("fn_0x%08X_%u", block_entry.cfg.start_address, block_entry.revision++), block_entry.cfg,
                          block_entry.IsFunction() ? true : false /*generate_linkable_exits*/);
-    m_executable_lookup[ordinal] = (Executable)compileResult.first;
-    m_executable_engine[ordinal] = compileResult.second;
+    std::get<1>(m_address_to_function[block_entry.cfg.start_address]) = std::unique_ptr<llvm::ExecutionEngine>(compileResult.second);
+    std::get<0>(m_address_to_function[block_entry.cfg.start_address]) = compileResult.first;
     block_entry.last_compiled_cfg_size = block_entry.cfg.GetSize();
     block_entry.is_compiled            = true;
 }
@@ -590,11 +542,6 @@ std::shared_ptr<RecompilationEngine> RecompilationEngine::GetInstance() {
     }
 
     return s_the_instance;
-}
-
-void RecompilationEngine::FreeExecutable(u32 ordinal) {
-  delete m_executable_engine[ordinal];
-  m_executable_engine[ordinal] = nullptr;
 }
 
 Tracer::Tracer()

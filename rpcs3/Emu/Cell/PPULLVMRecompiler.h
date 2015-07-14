@@ -992,17 +992,8 @@ namespace ppu_recompiler_llvm {
     public:
         virtual ~RecompilationEngine() override;
 
-        /// Allocate an ordinal
-        u32 AllocateOrdinal(u32 address, bool is_function);
-
-        /// Get the executable specified by the ordinal
-        const Executable GetExecutable(u32 ordinal) const;
-
         /// Get the executable for the specified address
         Executable GetExecutable(u32 address, Executable default_executable);
-
-        /// Get the address of the executable lookup
-        u64 GetAddressOfExecutableLookup() const;
 
         /// Notify the recompilation engine about a newly detected trace. It takes ownership of the trace.
         void NotifyTrace(ExecutionTrace * execution_trace);
@@ -1014,9 +1005,6 @@ namespace ppu_recompiler_llvm {
 
         /// Get a pointer to the instance of this class
         static std::shared_ptr<RecompilationEngine> GetInstance();
-
-        /// Free an executable earilier obtained via a call to Compile
-        void FreeExecutable(u32 ordinal);
 
     private:
         /// An entry in the block table
@@ -1089,8 +1077,8 @@ namespace ppu_recompiler_llvm {
         // TODO: Make this a RW lock
         std::mutex m_address_to_ordinal_lock;
 
-        /// Address to ordinal cahce. Key is address. Data is the pair (ordinal, times hit).
-        std::unordered_map<u32, std::pair<u32, u32>> m_address_to_ordinal;
+        /// Address to ordinal cahce. Key is address. Data is the pair (function, module containing function, times hit).
+        std::unordered_map<u32, std::tuple<Executable, std::unique_ptr<llvm::ExecutionEngine>, u32>> m_address_to_function;
 
         /// The time at which the m_address_to_ordinal cache was last cleared
         std::chrono::high_resolution_clock::time_point m_last_cache_clear_time;
@@ -1098,15 +1086,8 @@ namespace ppu_recompiler_llvm {
         /// Remove unused entries from the m_address_to_ordinal cache
         void RemoveUnusedEntriesFromCache();
 
-        /// Next ordinal to allocate
-        u32 m_next_ordinal;
-
         /// PPU Compiler
         Compiler m_compiler;
-
-        /// Executable lookup table
-        Executable m_executable_lookup[10000]; // TODO: Adjust size
-        llvm::ExecutionEngine *m_executable_engine[10000];
 
         RecompilationEngine();
 
@@ -1115,9 +1096,6 @@ namespace ppu_recompiler_llvm {
 
         RecompilationEngine & operator = (const RecompilationEngine & other) = delete;
         RecompilationEngine & operator = (RecompilationEngine && other) = delete;
-
-        /// Get the ordinal for the specified address
-        u32 GetOrdinal(u32 address) const;
 
         /// Process an execution trace.
         void ProcessExecutionTrace(const ExecutionTrace & execution_trace);
@@ -1180,6 +1158,7 @@ namespace ppu_recompiler_llvm {
      */
     class CPUHybridDecoderRecompiler : public CPUDecoder {
         friend class RecompilationEngine;
+        friend class Compiler;
     public:
         CPUHybridDecoderRecompiler(PPUThread & ppu);
         CPUHybridDecoderRecompiler() = delete;
