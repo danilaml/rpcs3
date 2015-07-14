@@ -995,11 +995,11 @@ namespace ppu_recompiler_llvm {
         /// Allocate an ordinal
         u32 AllocateOrdinal(u32 address, bool is_function);
 
-        /// Get the ordinal for the specified address
-        u32 GetOrdinal(u32 address) const;
-
         /// Get the executable specified by the ordinal
         const Executable GetExecutable(u32 ordinal) const;
+
+        /// Get the executable for the specified address
+        Executable GetExecutable(u32 address, Executable default_executable);
 
         /// Get the address of the executable lookup
         u64 GetAddressOfExecutableLookup() const;
@@ -1087,10 +1087,16 @@ namespace ppu_recompiler_llvm {
 
         /// Lock for accessing m_address_to_ordinal.
         // TODO: Make this a RW lock
-        mutable std::mutex m_address_to_ordinal_lock;
+        std::mutex m_address_to_ordinal_lock;
 
-        /// Mapping from address to ordinal
-        std::unordered_map<u32, u32> m_address_to_ordinal;
+        /// Address to ordinal cahce. Key is address. Data is the pair (ordinal, times hit).
+        std::unordered_map<u32, std::pair<u32, u32>> m_address_to_ordinal;
+
+        /// The time at which the m_address_to_ordinal cache was last cleared
+        std::chrono::high_resolution_clock::time_point m_last_cache_clear_time;
+
+        /// Remove unused entries from the m_address_to_ordinal cache
+        void RemoveUnusedEntriesFromCache();
 
         /// Next ordinal to allocate
         u32 m_next_ordinal;
@@ -1109,6 +1115,9 @@ namespace ppu_recompiler_llvm {
 
         RecompilationEngine & operator = (const RecompilationEngine & other) = delete;
         RecompilationEngine & operator = (RecompilationEngine && other) = delete;
+
+        /// Get the ordinal for the specified address
+        u32 GetOrdinal(u32 address) const;
 
         /// Process an execution trace.
         void ProcessExecutionTrace(const ExecutionTrace & execution_trace);
@@ -1198,20 +1207,8 @@ namespace ppu_recompiler_llvm {
         /// Execution tracer
         Tracer m_tracer;
 
-        /// The time at which the m_address_to_ordinal cache was last cleared
-        mutable std::chrono::high_resolution_clock::time_point m_last_cache_clear_time;
-
-        /// Address to ordinal cahce. Key is address. Data is the pair (ordinal, times hit).
-        mutable std::unordered_map<u32, std::pair<u32, u32>> m_address_to_ordinal;
-
         /// Recompilation engine
         std::shared_ptr<RecompilationEngine> m_recompilation_engine;
-
-        /// Remove unused entries from the m_address_to_ordinal cache
-        void RemoveUnusedEntriesFromCache() const;
-
-        /// Get the executable for the specified address
-        Executable GetExecutable(u32 address, Executable default_executable) const;
 
         /// Execute a function
         static u32 ExecuteFunction(PPUThread * ppu_state, u64 context);
