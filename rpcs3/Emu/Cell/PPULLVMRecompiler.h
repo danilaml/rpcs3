@@ -1222,9 +1222,6 @@ namespace ppu_recompiler_llvm {
         /// Check thread status. Returns true if the thread must exit.
         static bool PollStatus(PPUThread * ppu_state);
     };
-
-    /// Get the branch type from a branch instruction
-    BranchType GetBranchTypeFromInstruction(u32 instruction);
 }
 
 #endif // LLVM_AVAILABLE

@@ -700,6 +700,29 @@ u32 ppu_recompiler_llvm::CPUHybridDecoderRecompiler::ExecuteFunction(PPUThread *
     return ExecuteTillReturn(ppu_state, 0);
 }
 
+/// Get the branch type from a branch instruction
+static BranchType GetBranchTypeFromInstruction(u32 instruction) {
+  u32 field1 = instruction >> 26;
+  u32 lk = instruction & 1;
+
+  if (field1 == 16 || field1 == 18)
+    return lk ? BranchType::FunctionCall : BranchType::LocalBranch;
+  if (field1 == 19) {
+    u32 field2 = (instruction >> 1) & 0x3FF;
+    if (field2 == 16)
+      return lk ? BranchType::FunctionCall : BranchType::Return;
+    if (field2 == 528)
+      return lk ? BranchType::FunctionCall : BranchType::LocalBranch;
+    return BranchType::NonBranch;
+  }
+  if (field1 == 1 && (instruction & EIF_PERFORM_BLR)) // classify HACK instruction
+    return instruction & EIF_USE_BRANCH ? BranchType::FunctionCall : BranchType::Return;
+  if (field1 == 1 && (instruction & EIF_USE_BRANCH))
+    return BranchType::LocalBranch;
+  return BranchType::NonBranch;
+}
+
+
 u32 ppu_recompiler_llvm::CPUHybridDecoderRecompiler::ExecuteTillReturn(PPUThread * ppu_state, u64 context) {
     CPUHybridDecoderRecompiler *execution_engine = (CPUHybridDecoderRecompiler *)ppu_state->GetDecoder();
 
@@ -748,25 +771,4 @@ u32 ppu_recompiler_llvm::CPUHybridDecoderRecompiler::ExecuteTillReturn(PPUThread
 
 bool ppu_recompiler_llvm::CPUHybridDecoderRecompiler::PollStatus(PPUThread * ppu_state) {
     return ppu_state->CheckStatus();
-}
-
-BranchType ppu_recompiler_llvm::GetBranchTypeFromInstruction(u32 instruction) {
-    u32 field1 = instruction >> 26;
-    u32 lk     = instruction & 1;
-
-    if (field1 == 16 || field1 == 18)
-        return lk ? BranchType::FunctionCall : BranchType::LocalBranch;
-    if (field1 == 19) {
-        u32 field2 = (instruction >> 1) & 0x3FF;
-        if (field2 == 16)
-            return lk ? BranchType::FunctionCall : BranchType::Return;
-        if (field2 == 528)
-            return lk ? BranchType::FunctionCall : BranchType::LocalBranch;
-        return BranchType::NonBranch;
-    }
-    if (field1 == 1 && (instruction & EIF_PERFORM_BLR)) // classify HACK instruction
-        return instruction & EIF_USE_BRANCH ? BranchType::FunctionCall : BranchType::Return;
-    if (field1 == 1 && (instruction & EIF_USE_BRANCH))
-        return BranchType::LocalBranch;
-    return BranchType::NonBranch;
 }
