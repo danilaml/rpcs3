@@ -517,25 +517,26 @@ void RecompilationEngine::UpdateControlFlowGraph(ControlFlowGraph & cfg, const E
 }
 
 void RecompilationEngine::CompileBlock(BlockEntry & block_entry) {
-    std::lock_guard<std::recursive_mutex> lock(m_address_to_function_lock);
     Log() << "Compile: " << block_entry.ToString() << "\n";
     Log() << "CFG: " << block_entry.cfg.ToString() << "\n";
 
     const std::pair<Executable, llvm::ExecutionEngine *> &compileResult =
       m_compiler.Compile(fmt::Format("fn_0x%08X_%u", block_entry.cfg.start_address, block_entry.revision++), block_entry.cfg,
                          block_entry.IsFunction() ? true : false /*generate_linkable_exits*/);
-    m_pending_compiler_block.push_back(std::make_tuple(block_entry.cfg.start_address, compileResult.first, compileResult.second));
+    {
+      std::lock_guard<std::recursive_mutex> lock(m_address_to_function_lock);
+      m_pending_compiler_block.push_back(std::make_tuple(block_entry.cfg.start_address, compileResult.first, compileResult.second));
+    }
     block_entry.last_compiled_cfg_size = block_entry.cfg.GetSize();
     block_entry.is_compiled = true;
 }
 
 void RecompilationEngine::FlushCompiledBlock() {
-
+  std::lock_guard<std::recursive_mutex> lock(m_address_to_function_lock);
 //    RemoveUnusedEntriesFromCache();
 
     for (auto It : m_pending_compiler_block)
     {
-      std::lock_guard<std::recursive_mutex> lock(m_address_to_function_lock);
       auto tmp = m_address_to_function.find(std::get<0>(It));
       tmp->second;
       std::get<1>(m_address_to_function[std::get<0>(It)]) = std::get<2>(It);
