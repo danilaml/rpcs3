@@ -1078,7 +1078,7 @@ namespace ppu_recompiler_llvm {
         std::mutex m_address_to_ordinal_lock;
 
         /// Address to ordinal cahce. Key is address. Data is the pair (function, module containing function, times hit).
-        std::unordered_map<u32, std::tuple<Executable, std::unique_ptr<llvm::ExecutionEngine>, u32>> m_address_to_function;
+        std::unordered_map<u32, std::tuple<Executable, llvm::ExecutionEngine *, u32>> m_address_to_function;
 
         /// The time at which the m_address_to_ordinal cache was last cleared
         std::chrono::high_resolution_clock::time_point m_last_cache_clear_time;

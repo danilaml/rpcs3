@@ -530,7 +530,7 @@ void RecompilationEngine::CompileBlock(BlockEntry & block_entry) {
                          block_entry.IsFunction() ? true : false /*generate_linkable_exits*/);
     {
       std::lock_guard<std::mutex> lock(m_address_to_ordinal_lock);
-      std::get<1>(m_address_to_function[block_entry.cfg.start_address]) = std::unique_ptr<llvm::ExecutionEngine>(compileResult.second);
+      std::get<1>(m_address_to_function[block_entry.cfg.start_address]) = compileResult.second;
       std::get<0>(m_address_to_function[block_entry.cfg.start_address]) = compileResult.first;
       block_entry.last_compiled_cfg_size = block_entry.cfg.GetSize();
       block_entry.is_compiled = true;
