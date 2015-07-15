@@ -1080,7 +1080,7 @@ namespace ppu_recompiler_llvm {
         std::recursive_mutex m_address_to_function_lock;
 
         /// Address to ordinal cahce. Key is address. Data is the pair (function, module containing function, times hit).
-        std::unordered_map<u32, std::tuple<Executable, llvm::ExecutionEngine *, u32>> m_address_to_function;
+        std::unordered_map<u32, std::tuple<Executable, std::unique_ptr<llvm::ExecutionEngine>, u32>> m_address_to_function;
 
         /// Compiled block waiting to be inserted to m_address_to_function
         std::vector< std::tuple<u32, Executable, llvm::ExecutionEngine *> > m_pending_compiler_block;

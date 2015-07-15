@@ -393,7 +393,7 @@ void RecompilationEngine::Task() {
 
             if (candidate != nullptr) {
                 Log() << "Recompiling: " << candidate->ToString() << "\n";
-                CompileBlock(*candidate);
+//                CompileBlock(*candidate);
                 work_done_this_iteration = true;
             }
 
@@ -539,7 +539,7 @@ void RecompilationEngine::FlushCompiledBlock() {
     {
       auto tmp = m_address_to_function.find(std::get<0>(It));
       tmp->second;
-      std::get<1>(m_address_to_function[std::get<0>(It)]) = std::get<2>(It);
+      std::get<1>(m_address_to_function[std::get<0>(It)]) = std::unique_ptr<llvm::ExecutionEngine>(std::get<2>(It));
       std::get<0>(m_address_to_function[std::get<0>(It)]) = std::get<1>(It);
     }
     m_pending_compiler_block.clear();
