@@ -530,13 +530,18 @@ void RecompilationEngine::CompileBlock(BlockEntry & block_entry) {
 }
 
 void RecompilationEngine::FlushCompiledBlock() {
-    std::lock_guard<std::recursive_mutex> lock(m_address_to_function_lock);
-    RemoveUnusedEntriesFromCache();
+
+//    RemoveUnusedEntriesFromCache();
+
     for (auto It : m_pending_compiler_block)
     {
+      std::lock_guard<std::recursive_mutex> lock(m_address_to_function_lock);
+      auto tmp = m_address_to_function.find(std::get<0>(It));
+      tmp->second;
       std::get<1>(m_address_to_function[std::get<0>(It)]) = std::get<2>(It);
       std::get<0>(m_address_to_function[std::get<0>(It)]) = std::get<1>(It);
     }
+    m_pending_compiler_block.clear();
 }
 
 std::shared_ptr<RecompilationEngine> RecompilationEngine::GetInstance() {
