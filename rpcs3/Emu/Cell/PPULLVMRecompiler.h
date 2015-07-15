@@ -1003,6 +1003,9 @@ namespace ppu_recompiler_llvm {
 
         void Task();
 
+        /// Make pending compiled block available
+        void FlushCompiledBlock();
+
         /// Get a pointer to the instance of this class
         static std::shared_ptr<RecompilationEngine> GetInstance();
 
@@ -1073,12 +1076,14 @@ namespace ppu_recompiler_llvm {
         /// Execution traces that have been already encountered. Data is the list of all blocks that this trace includes.
         std::unordered_map<ExecutionTrace::Id, std::vector<BlockEntry *>> m_processed_execution_traces;
 
-        /// Lock for accessing m_address_to_ordinal.
-        // TODO: Make this a RW lock
-        std::mutex m_address_to_ordinal_lock;
+        /// Lock for accessing m_address_to_function.
+        std::recursive_mutex m_address_to_function_lock;
 
         /// Address to ordinal cahce. Key is address. Data is the pair (function, module containing function, times hit).
         std::unordered_map<u32, std::tuple<Executable, llvm::ExecutionEngine *, u32>> m_address_to_function;
+
+        /// Compiled block waiting to be inserted to m_address_to_function
+        std::vector< std::tuple<u32, Executable, llvm::ExecutionEngine *> > m_pending_compiler_block;
 
         /// The time at which the m_address_to_ordinal cache was last cleared
         std::chrono::high_resolution_clock::time_point m_last_cache_clear_time;

@@ -295,9 +295,7 @@ RecompilationEngine::~RecompilationEngine() {
 }
 
 const Executable &RecompilationEngine::GetExecutable(u32 address, Executable default_executable) {
-  std::lock_guard<std::mutex> lock(m_address_to_ordinal_lock);
-  // Find the ordinal for the specified address and insert it to the cache
-  RemoveUnusedEntriesFromCache();
+  std::lock_guard<std::recursive_mutex> lock(m_address_to_function_lock);
   auto i = m_address_to_function.find(address);
   if (i != m_address_to_function.end())
     return std::get<0>(i->second);
@@ -395,7 +393,7 @@ void RecompilationEngine::Task() {
 
             if (candidate != nullptr) {
                 Log() << "Recompiling: " << candidate->ToString() << "\n";
-//                CompileBlock(*candidate);
+                CompileBlock(*candidate);
                 work_done_this_iteration = true;
             }
 
@@ -519,18 +517,25 @@ void RecompilationEngine::UpdateControlFlowGraph(ControlFlowGraph & cfg, const E
 }
 
 void RecompilationEngine::CompileBlock(BlockEntry & block_entry) {
+    std::lock_guard<std::recursive_mutex> lock(m_address_to_function_lock);
     Log() << "Compile: " << block_entry.ToString() << "\n";
     Log() << "CFG: " << block_entry.cfg.ToString() << "\n";
 
-    std::pair<Executable, llvm::ExecutionEngine *> compileResult =
+    const std::pair<Executable, llvm::ExecutionEngine *> &compileResult =
       m_compiler.Compile(fmt::Format("fn_0x%08X_%u", block_entry.cfg.start_address, block_entry.revision++), block_entry.cfg,
                          block_entry.IsFunction() ? true : false /*generate_linkable_exits*/);
+    m_pending_compiler_block.push_back(std::make_tuple(block_entry.cfg.start_address, compileResult.first, compileResult.second));
+    block_entry.last_compiled_cfg_size = block_entry.cfg.GetSize();
+    block_entry.is_compiled = true;
+}
+
+void RecompilationEngine::FlushCompiledBlock() {
+    std::lock_guard<std::recursive_mutex> lock(m_address_to_function_lock);
+    RemoveUnusedEntriesFromCache();
+    for (auto It : m_pending_compiler_block)
     {
-      std::lock_guard<std::mutex> lock(m_address_to_ordinal_lock);
-      std::get<1>(m_address_to_function[block_entry.cfg.start_address]) = compileResult.second;
-      std::get<0>(m_address_to_function[block_entry.cfg.start_address]) = compileResult.first;
-      block_entry.last_compiled_cfg_size = block_entry.cfg.GetSize();
-      block_entry.is_compiled = true;
+      std::get<1>(m_address_to_function[std::get<0>(It)]) = std::get<2>(It);
+      std::get<0>(m_address_to_function[std::get<0>(It)]) = std::get<1>(It);
     }
 }
 
@@ -637,6 +642,8 @@ ppu_recompiler_llvm::CPUHybridDecoderRecompiler::~CPUHybridDecoderRecompiler() {
 
 u32 ppu_recompiler_llvm::CPUHybridDecoderRecompiler::DecodeMemory(const u32 address) {
     ExecuteFunction(&m_ppu, 0);
+    CPUHybridDecoderRecompiler *execution_engine = (CPUHybridDecoderRecompiler *) m_ppu.GetDecoder();
+    execution_engine->m_recompilation_engine->FlushCompiledBlock();
     return 0;
 }
 
