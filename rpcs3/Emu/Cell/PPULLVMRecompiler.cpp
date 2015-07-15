@@ -294,18 +294,15 @@ RecompilationEngine::~RecompilationEngine() {
     join();
 }
 
-Executable RecompilationEngine::GetExecutable(u32 address, Executable default_executable) {
+const Executable &RecompilationEngine::GetExecutable(u32 address, Executable default_executable) {
   std::lock_guard<std::mutex> lock(m_address_to_ordinal_lock);
   // Find the ordinal for the specified address and insert it to the cache
   RemoveUnusedEntriesFromCache();
   auto i = m_address_to_function.find(address);
-  if (i == m_address_to_function.end()) {
-    m_address_to_function[address] = std::make_tuple(default_executable, nullptr, 1);
-    return default_executable;
-  }
-
-
-  return std::get<0>(i->second);
+  if (i != m_address_to_function.end())
+    return std::get<0>(i->second);
+  m_address_to_function[address] = std::make_tuple(default_executable, nullptr, 1);
+  return std::get<0>(m_address_to_function[address]);
 }
 
 void RecompilationEngine::RemoveUnusedEntriesFromCache() {
@@ -398,7 +395,7 @@ void RecompilationEngine::Task() {
 
             if (candidate != nullptr) {
                 Log() << "Recompiling: " << candidate->ToString() << "\n";
-                CompileBlock(*candidate);
+//                CompileBlock(*candidate);
                 work_done_this_iteration = true;
             }
 

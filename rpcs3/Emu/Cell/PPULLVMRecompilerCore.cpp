@@ -5283,8 +5283,8 @@ void Compiler::WriteMemory(Value * addr_i64, Value * val_ix, u32 alignment, bool
 }
 
 llvm::Value * Compiler::IndirectCall(u32 address, Value * context_i64, bool is_function) {
-  void *functionPtr = m_recompilation_engine.GetExecutable(address, is_function ? CPUHybridDecoderRecompiler::ExecuteFunction : CPUHybridDecoderRecompiler::ExecuteTillReturn);
-  auto location_i64 = m_ir_builder->getInt64((uint64_t)functionPtr);
+  const Executable &functionPtr = m_recompilation_engine.GetExecutable(address, is_function ? CPUHybridDecoderRecompiler::ExecuteFunction : CPUHybridDecoderRecompiler::ExecuteTillReturn);
+  auto location_i64 = m_ir_builder->getInt64((uint64_t)&functionPtr);
   auto location_i64_ptr = m_ir_builder->CreateIntToPtr(location_i64, m_ir_builder->getInt64Ty()->getPointerTo());
   auto executable_i64 = m_ir_builder->CreateLoad(location_i64_ptr);
   auto executable_ptr = m_ir_builder->CreateIntToPtr(executable_i64, m_compiled_function_type->getPointerTo());

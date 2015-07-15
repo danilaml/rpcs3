@@ -993,7 +993,7 @@ namespace ppu_recompiler_llvm {
         virtual ~RecompilationEngine() override;
 
         /// Get the executable for the specified address
-        Executable GetExecutable(u32 address, Executable default_executable);
+        const Executable &GetExecutable(u32 address, Executable default_executable);
 
         /// Notify the recompilation engine about a newly detected trace. It takes ownership of the trace.
         void NotifyTrace(ExecutionTrace * execution_trace);
