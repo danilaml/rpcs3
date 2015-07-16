@@ -288,6 +288,7 @@ RecompilationEngine::RecompilationEngine()
     , m_last_cache_clear_time(std::chrono::high_resolution_clock::now())
     , m_compiler(*this, CPUHybridDecoderRecompiler::ExecuteFunction, CPUHybridDecoderRecompiler::ExecuteTillReturn, CPUHybridDecoderRecompiler::PollStatus) {
     m_waiting_to_flush = false;
+    m_current_running_thread = 0;
     m_compiler.RunAllTests();
 }
 
@@ -395,7 +396,7 @@ void RecompilationEngine::Task() {
 
             if (candidate != nullptr) {
                 Log() << "Recompiling: " << candidate->ToString() << "\n";
-                CompileBlock(*candidate);
+//                CompileBlock(*candidate);
                 work_done_this_iteration = true;
             }
 
@@ -528,7 +529,7 @@ void RecompilationEngine::CompileBlock(BlockEntry & block_entry) {
     m_waiting_thread = 0;
     m_waiting_to_flush = true;
 
-    while (m_waiting_thread < 1)
+    while (m_waiting_thread < m_current_running_thread)
       std::this_thread::yield();
 
     std::get<1>(m_address_to_function[block_entry.cfg.start_address]) = std::unique_ptr<llvm::ExecutionEngine>(compileResult.second);
@@ -634,6 +635,7 @@ ppu_recompiler_llvm::CPUHybridDecoderRecompiler::CPUHybridDecoderRecompiler(PPUT
     , m_interpreter(new PPUInterpreter(ppu))
     , m_decoder(m_interpreter)
     , m_recompilation_engine(RecompilationEngine::GetInstance()) {
+
 }
 
 ppu_recompiler_llvm::CPUHybridDecoderRecompiler::~CPUHybridDecoderRecompiler() {
@@ -641,12 +643,7 @@ ppu_recompiler_llvm::CPUHybridDecoderRecompiler::~CPUHybridDecoderRecompiler() {
 }
 
 u32 ppu_recompiler_llvm::CPUHybridDecoderRecompiler::DecodeMemory(const u32 address) {
-  if (m_recompilation_engine->m_waiting_to_flush)
-  {
-    m_recompilation_engine->m_waiting_thread++;
-    while (m_recompilation_engine->m_waiting_to_flush)
-      std::this_thread::yield();
-  }
+
     ExecuteFunction(&m_ppu, 0);
     return 0;
 }
@@ -679,21 +676,43 @@ static BranchType GetBranchTypeFromInstruction(u32 instruction) {
   return BranchType::NonBranch;
 }
 
+thread_local bool signal = false;
 
 u32 ppu_recompiler_llvm::CPUHybridDecoderRecompiler::ExecuteTillReturn(PPUThread * ppu_state, u64 context) {
     CPUHybridDecoderRecompiler *execution_engine = (CPUHybridDecoderRecompiler *)ppu_state->GetDecoder();
 
+    bool signal_local = signal;
+    if (!signal_local)
+    {
+      signal = true;
+      execution_engine->m_recompilation_engine->m_current_running_thread.fetch_add(1);
+      if (execution_engine->m_recompilation_engine->m_current_running_thread.load() == 3)
+        printf("here");
+    }
+
     if (context)
         execution_engine->m_tracer.Trace(Tracer::TraceType::ExitFromCompiledFunction, context >> 32, context & 0xFFFFFFFF);
 
+    bool terminateIteration = false;
+
     while (PollStatus(ppu_state) == false) {
+
+
+      if (execution_engine->m_recompilation_engine->m_waiting_to_flush)
+      {
+        execution_engine->m_recompilation_engine->m_waiting_thread++;
+        while (execution_engine->m_recompilation_engine->m_waiting_to_flush)
+          std::this_thread::yield();
+      }
+
+        terminateIteration = false;
         Executable executable = execution_engine->m_recompilation_engine->GetExecutable(ppu_state->PC, ExecuteTillReturn);
         if (executable != ExecuteTillReturn && executable != ExecuteFunction) {
             auto entry = ppu_state->PC;
             u32 exit  = (u32)executable(ppu_state, 0);
             execution_engine->m_tracer.Trace(Tracer::TraceType::ExitFromCompiledBlock, entry, exit);
             if (exit == 0)
-              return 0;
+              terminateIteration = true;
         } else {
             execution_engine->m_tracer.Trace(Tracer::TraceType::Instruction, ppu_state->PC, 0);
             u32 instruction = vm::ps3::read32(ppu_state->PC);
@@ -705,7 +724,7 @@ u32 ppu_recompiler_llvm::CPUHybridDecoderRecompiler::ExecuteTillReturn(PPUThread
             switch (branch_type) {
             case BranchType::Return:
                 execution_engine->m_tracer.Trace(Tracer::TraceType::Return, 0, 0);
-                return 0;
+                terminateIteration = true;
                 break;
             case BranchType::FunctionCall:
                 execution_engine->m_tracer.Trace(Tracer::TraceType::CallFunction, ppu_state->PC, 0);
@@ -721,6 +740,14 @@ u32 ppu_recompiler_llvm::CPUHybridDecoderRecompiler::ExecuteTillReturn(PPUThread
                 break;
             }
         }
+        if (terminateIteration)
+          break;
+    }
+
+    if (!signal_local)
+    {
+      signal = false;
+      execution_engine->m_recompilation_engine->m_current_running_thread.fetch_sub(1);
     }
 
     return 0;

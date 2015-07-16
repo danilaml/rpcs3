@@ -1015,6 +1015,7 @@ namespace ppu_recompiler_llvm {
         **/
         std::atomic<bool> m_waiting_to_flush;
         std::atomic<int> m_waiting_thread;
+        std::atomic<int> m_current_running_thread;
 
     private:
         /// An entry in the block table
