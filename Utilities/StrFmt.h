@@ -179,7 +179,7 @@ namespace fmt
 	template<typename T, bool is_enum = std::is_enum<T>::value>
 	struct unveil
 	{
-		typedef T result_type;
+		using result_type = T;
 
 		force_inline static result_type get_value(const T& arg)
 		{
@@ -190,7 +190,7 @@ namespace fmt
 	template<>
 	struct unveil<char*, false>
 	{
-		typedef const char* result_type;
+		using result_type = const char*;
 
 		force_inline static result_type get_value(const char* arg)
 		{
@@ -201,7 +201,7 @@ namespace fmt
 	template<size_t N>
 	struct unveil<const char[N], false>
 	{
-		typedef const char* result_type;
+		using result_type = const char*;
 
 		force_inline static result_type get_value(const char(&arg)[N])
 		{
@@ -212,7 +212,7 @@ namespace fmt
 	template<>
 	struct unveil<std::string, false>
 	{
-		typedef const char* result_type;
+		using result_type = const char*;
 
 		force_inline static result_type get_value(const std::string& arg)
 		{
@@ -223,7 +223,7 @@ namespace fmt
 	template<typename T>
 	struct unveil<T, true>
 	{
-		typedef typename std::underlying_type<T>::type result_type;
+		using result_type = std::underlying_type_t<T>;
 
 		force_inline static result_type get_value(const T& arg)
 		{
@@ -231,12 +231,23 @@ namespace fmt
 		}
 	};
 
-	template<typename T, typename T2>
-	struct unveil<be_t<T, T2>, false>
+	template<typename T>
+	struct unveil<be_t<T>, false>
 	{
-		typedef typename unveil<T>::result_type result_type;
+		using result_type = typename unveil<T>::result_type;
 
-		force_inline static result_type get_value(const be_t<T, T2>& arg)
+		force_inline static result_type get_value(const be_t<T>& arg)
+		{
+			return unveil<T>::get_value(arg.value());
+		}
+	};
+
+	template<typename T>
+	struct unveil<le_t<T>, false>
+	{
+		using result_type = typename unveil<T>::result_type;
+
+		force_inline static result_type get_value(const le_t<T>& arg)
 		{
 			return unveil<T>::get_value(arg.value());
 		}
@@ -257,18 +268,47 @@ namespace fmt
 	be_t<> forced to .value() (fmt::unveil reverts byte order automatically)
 
 	External specializations for fmt::unveil (can be found in another headers):
-	vm::ps3::ptr (fmt::unveil) (vm_ptr.h) (with appropriate address type, using .addr() can be avoided)
-	vm::ps3::bptr (fmt::unveil) (vm_ptr.h)
-	vm::psv::ptr (fmt::unveil) (vm_ptr.h)
-	vm::ps3::ref (fmt::unveil) (vm_ref.h)
-	vm::ps3::bref (fmt::unveil) (vm_ref.h)
-	vm::psv::ref (fmt::unveil) (vm_ref.h)
+	vm::ptr, vm::bptr, ... (fmt::unveil) (vm_ptr.h) (with appropriate address type, using .addr() can be avoided)
+	vm::ref, vm::bref, ... (fmt::unveil) (vm_ref.h)
 	
 	*/
 	template<typename... Args> force_inline safe_buffers std::string format(const char* fmt, Args... args)
 	{
 		return Format(fmt, do_unveil(args)...);
 	}
+
+	struct exception
+	{
+		std::unique_ptr<char[]> message;
+
+		template<typename... Args> never_inline safe_buffers exception(const char* file, int line, const char* func, const char* text, Args... args)
+		{
+			const std::string data = format(text, args...) + format("\n(in file %s:%d, in function %s)", file, line, func);
+
+			message = std::make_unique<char[]>(data.size() + 1);
+
+			std::memcpy(message.get(), data.c_str(), data.size() + 1);
+		}
+
+		exception(const exception& other)
+		{
+			const std::size_t size = std::strlen(other);
+
+			message = std::make_unique<char[]>(size + 1);
+
+			std::memcpy(message.get(), other, size + 1);
+		}
+
+		exception(exception&& other)
+		{
+			message = std::move(other.message);
+		}
+
+		operator const char*() const
+		{
+			return message.get();
+		}
+	};
 
 	//convert a wxString to a std::string encoded in utf8
 	//CAUTION, only use this to interface with wxWidgets classes

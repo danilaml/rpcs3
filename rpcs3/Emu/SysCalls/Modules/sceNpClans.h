@@ -1,5 +1,7 @@
 #pragma once
 
+namespace vm { using namespace ps3; }
+
 // Return codes
 enum
 {
@@ -108,8 +110,7 @@ enum
 };
 
 // Request handle for clan API
-struct SceNpClansRequest;
-typedef vm::ptr<SceNpClansRequest> SceNpClansRequestHandle;
+using SceNpClansRequestHandle = vm::ptr<struct SceNpClansRequest>;
 
 // Paging request structure
 struct SceNpClansPagingRequest

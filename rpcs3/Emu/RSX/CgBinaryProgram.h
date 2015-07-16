@@ -301,7 +301,7 @@ public:
 
 				m_arb_shader += fmt::format("#%d ", i) + param_type + param_name + param_semantic + param_const + "\n";
 
-				offset += sizeof(CgBinaryParameter);
+				offset += sizeof32(CgBinaryParameter);
 			}
 
 			m_arb_shader += "\n";
@@ -355,7 +355,7 @@ public:
 
 				m_arb_shader += fmt::format("#%d ", i) + param_type + param_name + param_semantic + param_const + "\n";
 
-				offset += sizeof(CgBinaryParameter);
+				offset += sizeof32(CgBinaryParameter);
 			}
 
 			m_arb_shader += "\n";
@@ -365,7 +365,7 @@ public:
 			assert((m_buffer_size - m_offset) % sizeof(u32) == 0);
 			for (u32 i = 0; i < (m_buffer_size - m_offset) / sizeof(u32); i++)
 			{
-				vdata[i] = re32(vdata[i]);
+				vdata[i] = _byteswap_ulong(vdata[i]); // WTF, cannot use be_t<> there?
 			}
 
 			for (u32 i = 0; i < prog.ucodeSize / sizeof(u32); i++)

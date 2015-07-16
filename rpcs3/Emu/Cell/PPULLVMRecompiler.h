@@ -13,7 +13,7 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/GlobalVariable.h"
-#include "llvm/ExecutionEngine/JIT.h"
+#include "llvm/ExecutionEngine/MCJIT.h"
 #include "llvm/PassManager.h"
 
 namespace ppu_recompiler_llvm {
@@ -284,11 +284,11 @@ namespace ppu_recompiler_llvm {
         Compiler & operator = (const Compiler & other) = delete;
         Compiler & operator = (Compiler && other) = delete;
 
-        /// Compile a code fragment described by a cfg and return an executable
-        Executable Compile(const std::string & name, const ControlFlowGraph & cfg, bool inline_all_blocks, bool generate_linkable_exits);
-
-        /// Free an executable earilier obtained via a call to Compile
-        void FreeExecutable(const std::string & name);
+        /**
+         * Compile a code fragment described by a cfg and return an executable and the ExecutionEngine storing it
+         * Pointer to function can be retrieved with getPointerToFunction
+         */
+        std::pair<Executable, llvm::ExecutionEngine *> Compile(const std::string & name, const ControlFlowGraph & cfg, bool generate_linkable_exits);
 
         /// Retrieve compiler stats
         Stats GetStats();
@@ -486,59 +486,59 @@ namespace ppu_recompiler_llvm {
         void CRORC(u32 bt, u32 ba, u32 bb) override;
         void CROR(u32 bt, u32 ba, u32 bb) override;
         void BCCTR(u32 bo, u32 bi, u32 bh, u32 lk) override;
-        void RLWIMI(u32 ra, u32 rs, u32 sh, u32 mb, u32 me, bool rc) override;
-        void RLWINM(u32 ra, u32 rs, u32 sh, u32 mb, u32 me, bool rc) override;
-        void RLWNM(u32 ra, u32 rs, u32 rb, u32 MB, u32 ME, bool rc) override;
+        void RLWIMI(u32 ra, u32 rs, u32 sh, u32 mb, u32 me, u32 rc) override;
+        void RLWINM(u32 ra, u32 rs, u32 sh, u32 mb, u32 me, u32 rc) override;
+        void RLWNM(u32 ra, u32 rs, u32 rb, u32 MB, u32 ME, u32 rc) override;
         void ORI(u32 rs, u32 ra, u32 uimm16) override;
         void ORIS(u32 rs, u32 ra, u32 uimm16) override;
         void XORI(u32 ra, u32 rs, u32 uimm16) override;
         void XORIS(u32 ra, u32 rs, u32 uimm16) override;
         void ANDI_(u32 ra, u32 rs, u32 uimm16) override;
         void ANDIS_(u32 ra, u32 rs, u32 uimm16) override;
-        void RLDICL(u32 ra, u32 rs, u32 sh, u32 mb, bool rc) override;
-        void RLDICR(u32 ra, u32 rs, u32 sh, u32 me, bool rc) override;
-        void RLDIC(u32 ra, u32 rs, u32 sh, u32 mb, bool rc) override;
-        void RLDIMI(u32 ra, u32 rs, u32 sh, u32 mb, bool rc) override;
-        void RLDC_LR(u32 ra, u32 rs, u32 rb, u32 m_eb, bool is_r, bool rc) override;
+        void RLDICL(u32 ra, u32 rs, u32 sh, u32 mb, u32 rc) override;
+        void RLDICR(u32 ra, u32 rs, u32 sh, u32 me, u32 rc) override;
+        void RLDIC(u32 ra, u32 rs, u32 sh, u32 mb, u32 rc) override;
+        void RLDIMI(u32 ra, u32 rs, u32 sh, u32 mb, u32 rc) override;
+        void RLDC_LR(u32 ra, u32 rs, u32 rb, u32 m_eb, u32 is_r, u32 rc) override;
         void CMP(u32 crfd, u32 l, u32 ra, u32 rb) override;
         void TW(u32 to, u32 ra, u32 rb) override;
         void LVSL(u32 vd, u32 ra, u32 rb) override;
         void LVEBX(u32 vd, u32 ra, u32 rb) override;
-        void SUBFC(u32 rd, u32 ra, u32 rb, u32 oe, bool rc) override;
-        void MULHDU(u32 rd, u32 ra, u32 rb, bool rc) override;
-        void ADDC(u32 rd, u32 ra, u32 rb, u32 oe, bool rc) override;
-        void MULHWU(u32 rd, u32 ra, u32 rb, bool rc) override;
+        void SUBFC(u32 rd, u32 ra, u32 rb, u32 oe, u32 rc) override;
+        void MULHDU(u32 rd, u32 ra, u32 rb, u32 rc) override;
+        void ADDC(u32 rd, u32 ra, u32 rb, u32 oe, u32 rc) override;
+        void MULHWU(u32 rd, u32 ra, u32 rb, u32 rc) override;
         void MFOCRF(u32 a, u32 rd, u32 crm) override;
         void LWARX(u32 rd, u32 ra, u32 rb) override;
         void LDX(u32 ra, u32 rs, u32 rb) override;
         void LWZX(u32 rd, u32 ra, u32 rb) override;
-        void SLW(u32 ra, u32 rs, u32 rb, bool rc) override;
-        void CNTLZW(u32 ra, u32 rs, bool rc) override;
-        void SLD(u32 ra, u32 rs, u32 rb, bool rc) override;
-        void AND(u32 ra, u32 rs, u32 rb, bool rc) override;
+        void SLW(u32 ra, u32 rs, u32 rb, u32 rc) override;
+        void CNTLZW(u32 ra, u32 rs, u32 rc) override;
+        void SLD(u32 ra, u32 rs, u32 rb, u32 rc) override;
+        void AND(u32 ra, u32 rs, u32 rb, u32 rc) override;
         void CMPL(u32 bf, u32 l, u32 ra, u32 rb) override;
         void LVSR(u32 vd, u32 ra, u32 rb) override;
         void LVEHX(u32 vd, u32 ra, u32 rb) override;
-        void SUBF(u32 rd, u32 ra, u32 rb, u32 oe, bool rc) override;
+        void SUBF(u32 rd, u32 ra, u32 rb, u32 oe, u32 rc) override;
         void LDUX(u32 rd, u32 ra, u32 rb) override;
         void DCBST(u32 ra, u32 rb) override;
         void LWZUX(u32 rd, u32 ra, u32 rb) override;
-        void CNTLZD(u32 ra, u32 rs, bool rc) override;
-        void ANDC(u32 ra, u32 rs, u32 rb, bool rc) override;
+        void CNTLZD(u32 ra, u32 rs, u32 rc) override;
+        void ANDC(u32 ra, u32 rs, u32 rb, u32 rc) override;
         void TD(u32 to, u32 ra, u32 rb) override;
         void LVEWX(u32 vd, u32 ra, u32 rb) override;
-        void MULHD(u32 rd, u32 ra, u32 rb, bool rc) override;
-        void MULHW(u32 rd, u32 ra, u32 rb, bool rc) override;
+        void MULHD(u32 rd, u32 ra, u32 rb, u32 rc) override;
+        void MULHW(u32 rd, u32 ra, u32 rb, u32 rc) override;
         void LDARX(u32 rd, u32 ra, u32 rb) override;
         void DCBF(u32 ra, u32 rb) override;
         void LBZX(u32 rd, u32 ra, u32 rb) override;
         void LVX(u32 vd, u32 ra, u32 rb) override;
-        void NEG(u32 rd, u32 ra, u32 oe, bool rc) override;
+        void NEG(u32 rd, u32 ra, u32 oe, u32 rc) override;
         void LBZUX(u32 rd, u32 ra, u32 rb) override;
-        void NOR(u32 ra, u32 rs, u32 rb, bool rc) override;
+        void NOR(u32 ra, u32 rs, u32 rb, u32 rc) override;
         void STVEBX(u32 vs, u32 ra, u32 rb) override;
-        void SUBFE(u32 rd, u32 ra, u32 rb, u32 oe, bool rc) override;
-        void ADDE(u32 rd, u32 ra, u32 rb, u32 oe, bool rc) override;
+        void SUBFE(u32 rd, u32 ra, u32 rb, u32 oe, u32 rc) override;
+        void ADDE(u32 rd, u32 ra, u32 rb, u32 oe, u32 rc) override;
         void MTOCRF(u32 l, u32 crm, u32 rs) override;
         void STDX(u32 rs, u32 ra, u32 rb) override;
         void STWCX_(u32 rs, u32 ra, u32 rb) override;
@@ -547,24 +547,24 @@ namespace ppu_recompiler_llvm {
         void STDUX(u32 rs, u32 ra, u32 rb) override;
         void STWUX(u32 rs, u32 ra, u32 rb) override;
         void STVEWX(u32 vs, u32 ra, u32 rb) override;
-        void SUBFZE(u32 rd, u32 ra, u32 oe, bool rc) override;
-        void ADDZE(u32 rd, u32 ra, u32 oe, bool rc) override;
+        void SUBFZE(u32 rd, u32 ra, u32 oe, u32 rc) override;
+        void ADDZE(u32 rd, u32 ra, u32 oe, u32 rc) override;
         void STDCX_(u32 rs, u32 ra, u32 rb) override;
         void STBX(u32 rs, u32 ra, u32 rb) override;
         void STVX(u32 vs, u32 ra, u32 rb) override;
-        void MULLD(u32 rd, u32 ra, u32 rb, u32 oe, bool rc) override;
-        void SUBFME(u32 rd, u32 ra, u32 oe, bool rc) override;
-        void ADDME(u32 rd, u32 ra, u32 oe, bool rc) override;
-        void MULLW(u32 rd, u32 ra, u32 rb, u32 oe, bool rc) override;
+        void MULLD(u32 rd, u32 ra, u32 rb, u32 oe, u32 rc) override;
+        void SUBFME(u32 rd, u32 ra, u32 oe, u32 rc) override;
+        void ADDME(u32 rd, u32 ra, u32 oe, u32 rc) override;
+        void MULLW(u32 rd, u32 ra, u32 rb, u32 oe, u32 rc) override;
         void DCBTST(u32 ra, u32 rb, u32 th) override;
         void STBUX(u32 rs, u32 ra, u32 rb) override;
-        void ADD(u32 rd, u32 ra, u32 rb, u32 oe, bool rc) override;
+        void ADD(u32 rd, u32 ra, u32 rb, u32 oe, u32 rc) override;
         void DCBT(u32 ra, u32 rb, u32 th) override;
         void LHZX(u32 rd, u32 ra, u32 rb) override;
-        void EQV(u32 ra, u32 rs, u32 rb, bool rc) override;
+        void EQV(u32 ra, u32 rs, u32 rb, u32 rc) override;
         void ECIWX(u32 rd, u32 ra, u32 rb) override;
         void LHZUX(u32 rd, u32 ra, u32 rb) override;
-        void XOR(u32 rs, u32 ra, u32 rb, bool rc) override;
+        void XOR(u32 rs, u32 ra, u32 rb, u32 rc) override;
         void MFSPR(u32 rd, u32 spr) override;
         void LWAX(u32 rd, u32 ra, u32 rb) override;
         void DST(u32 ra, u32 rb, u32 strm, u32 t) override;
@@ -575,25 +575,25 @@ namespace ppu_recompiler_llvm {
         void DSTST(u32 ra, u32 rb, u32 strm, u32 t) override;
         void LHAUX(u32 rd, u32 ra, u32 rb) override;
         void STHX(u32 rs, u32 ra, u32 rb) override;
-        void ORC(u32 rs, u32 ra, u32 rb, bool rc) override;
+        void ORC(u32 rs, u32 ra, u32 rb, u32 rc) override;
         void ECOWX(u32 rs, u32 ra, u32 rb) override;
         void STHUX(u32 rs, u32 ra, u32 rb) override;
-        void OR(u32 ra, u32 rs, u32 rb, bool rc) override;
-        void DIVDU(u32 rd, u32 ra, u32 rb, u32 oe, bool rc) override;
-        void DIVWU(u32 rd, u32 ra, u32 rb, u32 oe, bool rc) override;
+        void OR(u32 ra, u32 rs, u32 rb, u32 rc) override;
+        void DIVDU(u32 rd, u32 ra, u32 rb, u32 oe, u32 rc) override;
+        void DIVWU(u32 rd, u32 ra, u32 rb, u32 oe, u32 rc) override;
         void MTSPR(u32 spr, u32 rs) override;
         void DCBI(u32 ra, u32 rb) override;
-        void NAND(u32 ra, u32 rs, u32 rb, bool rc) override;
+        void NAND(u32 ra, u32 rs, u32 rb, u32 rc) override;
         void STVXL(u32 vs, u32 ra, u32 rb) override;
-        void DIVD(u32 rd, u32 ra, u32 rb, u32 oe, bool rc) override;
-        void DIVW(u32 rd, u32 ra, u32 rb, u32 oe, bool rc) override;
+        void DIVD(u32 rd, u32 ra, u32 rb, u32 oe, u32 rc) override;
+        void DIVW(u32 rd, u32 ra, u32 rb, u32 oe, u32 rc) override;
         void LVLX(u32 vd, u32 ra, u32 rb) override;
         void LDBRX(u32 rd, u32 ra, u32 rb) override;
         void LSWX(u32 rd, u32 ra, u32 rb) override;
         void LWBRX(u32 rd, u32 ra, u32 rb) override;
         void LFSX(u32 frd, u32 ra, u32 rb) override;
-        void SRW(u32 ra, u32 rs, u32 rb, bool rc) override;
-        void SRD(u32 ra, u32 rs, u32 rb, bool rc) override;
+        void SRW(u32 ra, u32 rs, u32 rb, u32 rc) override;
+        void SRD(u32 ra, u32 rs, u32 rb, u32 rc) override;
         void LVRX(u32 vd, u32 ra, u32 rb) override;
         void LSWI(u32 rd, u32 ra, u32 nb) override;
         void LFSUX(u32 frd, u32 ra, u32 rb) override;
@@ -612,21 +612,21 @@ namespace ppu_recompiler_llvm {
         void STFDUX(u32 frs, u32 ra, u32 rb) override;
         void LVLXL(u32 vd, u32 ra, u32 rb) override;
         void LHBRX(u32 rd, u32 ra, u32 rb) override;
-        void SRAW(u32 ra, u32 rs, u32 rb, bool rc) override;
-        void SRAD(u32 ra, u32 rs, u32 rb, bool rc) override;
+        void SRAW(u32 ra, u32 rs, u32 rb, u32 rc) override;
+        void SRAD(u32 ra, u32 rs, u32 rb, u32 rc) override;
         void LVRXL(u32 vd, u32 ra, u32 rb) override;
         void DSS(u32 strm, u32 a) override;
-        void SRAWI(u32 ra, u32 rs, u32 sh, bool rc) override;
-        void SRADI1(u32 ra, u32 rs, u32 sh, bool rc) override;
-        void SRADI2(u32 ra, u32 rs, u32 sh, bool rc) override;
+        void SRAWI(u32 ra, u32 rs, u32 sh, u32 rc) override;
+        void SRADI1(u32 ra, u32 rs, u32 sh, u32 rc) override;
+        void SRADI2(u32 ra, u32 rs, u32 sh, u32 rc) override;
         void EIEIO() override;
         void STVLXL(u32 vs, u32 ra, u32 rb) override;
         void STHBRX(u32 rs, u32 ra, u32 rb) override;
-        void EXTSH(u32 ra, u32 rs, bool rc) override;
+        void EXTSH(u32 ra, u32 rs, u32 rc) override;
         void STVRXL(u32 sd, u32 ra, u32 rb) override;
-        void EXTSB(u32 ra, u32 rs, bool rc) override;
+        void EXTSB(u32 ra, u32 rs, u32 rc) override;
         void STFIWX(u32 frs, u32 ra, u32 rb) override;
-        void EXTSW(u32 ra, u32 rs, bool rc) override;
+        void EXTSW(u32 ra, u32 rs, u32 rc) override;
         void ICBI(u32 ra, u32 rb) override;
         void DCBZ(u32 ra, u32 rb) override;
         void LWZ(u32 rd, u32 ra, s32 d) override;
@@ -656,48 +656,48 @@ namespace ppu_recompiler_llvm {
         void LD(u32 rd, u32 ra, s32 ds) override;
         void LDU(u32 rd, u32 ra, s32 ds) override;
         void LWA(u32 rd, u32 ra, s32 ds) override;
-        void FDIVS(u32 frd, u32 fra, u32 frb, bool rc) override;
-        void FSUBS(u32 frd, u32 fra, u32 frb, bool rc) override;
-        void FADDS(u32 frd, u32 fra, u32 frb, bool rc) override;
-        void FSQRTS(u32 frd, u32 frb, bool rc) override;
-        void FRES(u32 frd, u32 frb, bool rc) override;
-        void FMULS(u32 frd, u32 fra, u32 frc, bool rc) override;
-        void FMADDS(u32 frd, u32 fra, u32 frc, u32 frb, bool rc) override;
-        void FMSUBS(u32 frd, u32 fra, u32 frc, u32 frb, bool rc) override;
-        void FNMSUBS(u32 frd, u32 fra, u32 frc, u32 frb, bool rc) override;
-        void FNMADDS(u32 frd, u32 fra, u32 frc, u32 frb, bool rc) override;
+        void FDIVS(u32 frd, u32 fra, u32 frb, u32 rc) override;
+        void FSUBS(u32 frd, u32 fra, u32 frb, u32 rc) override;
+        void FADDS(u32 frd, u32 fra, u32 frb, u32 rc) override;
+        void FSQRTS(u32 frd, u32 frb, u32 rc) override;
+        void FRES(u32 frd, u32 frb, u32 rc) override;
+        void FMULS(u32 frd, u32 fra, u32 frc, u32 rc) override;
+        void FMADDS(u32 frd, u32 fra, u32 frc, u32 frb, u32 rc) override;
+        void FMSUBS(u32 frd, u32 fra, u32 frc, u32 frb, u32 rc) override;
+        void FNMSUBS(u32 frd, u32 fra, u32 frc, u32 frb, u32 rc) override;
+        void FNMADDS(u32 frd, u32 fra, u32 frc, u32 frb, u32 rc) override;
         void STD(u32 rs, u32 ra, s32 ds) override;
         void STDU(u32 rs, u32 ra, s32 ds) override;
-        void MTFSB1(u32 bt, bool rc) override;
+        void MTFSB1(u32 bt, u32 rc) override;
         void MCRFS(u32 bf, u32 bfa) override;
-        void MTFSB0(u32 bt, bool rc) override;
-        void MTFSFI(u32 crfd, u32 i, bool rc) override;
-        void MFFS(u32 frd, bool rc) override;
-        void MTFSF(u32 flm, u32 frb, bool rc) override;
+        void MTFSB0(u32 bt, u32 rc) override;
+        void MTFSFI(u32 crfd, u32 i, u32 rc) override;
+        void MFFS(u32 frd, u32 rc) override;
+        void MTFSF(u32 flm, u32 frb, u32 rc) override;
 
         void FCMPU(u32 bf, u32 fra, u32 frb) override;
-        void FRSP(u32 frd, u32 frb, bool rc) override;
-        void FCTIW(u32 frd, u32 frb, bool rc) override;
-        void FCTIWZ(u32 frd, u32 frb, bool rc) override;
-        void FDIV(u32 frd, u32 fra, u32 frb, bool rc) override;
-        void FSUB(u32 frd, u32 fra, u32 frb, bool rc) override;
-        void FADD(u32 frd, u32 fra, u32 frb, bool rc) override;
-        void FSQRT(u32 frd, u32 frb, bool rc) override;
-        void FSEL(u32 frd, u32 fra, u32 frc, u32 frb, bool rc) override;
-        void FMUL(u32 frd, u32 fra, u32 frc, bool rc) override;
-        void FRSQRTE(u32 frd, u32 frb, bool rc) override;
-        void FMSUB(u32 frd, u32 fra, u32 frc, u32 frb, bool rc) override;
-        void FMADD(u32 frd, u32 fra, u32 frc, u32 frb, bool rc) override;
-        void FNMSUB(u32 frd, u32 fra, u32 frc, u32 frb, bool rc) override;
-        void FNMADD(u32 frd, u32 fra, u32 frc, u32 frb, bool rc) override;
+        void FRSP(u32 frd, u32 frb, u32 rc) override;
+        void FCTIW(u32 frd, u32 frb, u32 rc) override;
+        void FCTIWZ(u32 frd, u32 frb, u32 rc) override;
+        void FDIV(u32 frd, u32 fra, u32 frb, u32 rc) override;
+        void FSUB(u32 frd, u32 fra, u32 frb, u32 rc) override;
+        void FADD(u32 frd, u32 fra, u32 frb, u32 rc) override;
+        void FSQRT(u32 frd, u32 frb, u32 rc) override;
+        void FSEL(u32 frd, u32 fra, u32 frc, u32 frb, u32 rc) override;
+        void FMUL(u32 frd, u32 fra, u32 frc, u32 rc) override;
+        void FRSQRTE(u32 frd, u32 frb, u32 rc) override;
+        void FMSUB(u32 frd, u32 fra, u32 frc, u32 frb, u32 rc) override;
+        void FMADD(u32 frd, u32 fra, u32 frc, u32 frb, u32 rc) override;
+        void FNMSUB(u32 frd, u32 fra, u32 frc, u32 frb, u32 rc) override;
+        void FNMADD(u32 frd, u32 fra, u32 frc, u32 frb, u32 rc) override;
         void FCMPO(u32 crfd, u32 fra, u32 frb) override;
-        void FNEG(u32 frd, u32 frb, bool rc) override;
-        void FMR(u32 frd, u32 frb, bool rc) override;
-        void FNABS(u32 frd, u32 frb, bool rc) override;
-        void FABS(u32 frd, u32 frb, bool rc) override;
-        void FCTID(u32 frd, u32 frb, bool rc) override;
-        void FCTIDZ(u32 frd, u32 frb, bool rc) override;
-        void FCFID(u32 frd, u32 frb, bool rc) override;
+        void FNEG(u32 frd, u32 frb, u32 rc) override;
+        void FMR(u32 frd, u32 frb, u32 rc) override;
+        void FNABS(u32 frd, u32 frb, u32 rc) override;
+        void FABS(u32 frd, u32 frb, u32 rc) override;
+        void FCTID(u32 frd, u32 frb, u32 rc) override;
+        void FCTIDZ(u32 frd, u32 frb, u32 rc) override;
+        void FCFID(u32 frd, u32 frb, u32 rc) override;
 
         void UNK(const u32 code, const u32 opcode, const u32 gcode) override;
 
@@ -727,9 +727,6 @@ namespace ppu_recompiler_llvm {
             /// If a branch instruction is encountered, this is set to true by the decode function.
             bool hit_branch_instruction;
 
-            /// Indicates whether a block should be inlined even if an already compiled version of the block exists
-            bool inline_all;
-
             /// Create code such that exit points can be linked to other blocks
             bool generate_linkable_exits;
         };
@@ -746,6 +743,9 @@ namespace ppu_recompiler_llvm {
         /// The executable that will be called to execute unknown blocks
         llvm::Function *  m_execute_unknown_block;
 
+        /// Maps function name to executable memory pointer
+        std::unordered_map<std::string, Executable> m_executableMap;
+
         /// LLVM context
         llvm::LLVMContext * m_llvm_context;
 
@@ -754,12 +754,6 @@ namespace ppu_recompiler_llvm {
 
         /// Module to which all generated code is output to
         llvm::Module * m_module;
-
-        /// JIT execution engine
-        llvm::ExecutionEngine * m_execution_engine;
-
-        /// Function pass manager
-        llvm::FunctionPassManager * m_fpm;
 
         /// LLVM type of the functions genreated by the compiler
         llvm::FunctionType * m_compiled_function_type;
@@ -919,11 +913,57 @@ namespace ppu_recompiler_llvm {
 
         /// Convert a C++ type to an LLVM type
         template<class T>
-        llvm::Type * CppToLlvmType();
+        llvm::Type * Compiler::CppToLlvmType() {
+          if (std::is_void<T>::value) {
+            return m_ir_builder->getVoidTy();
+          }
+          else if (std::is_same<T, long long>::value || std::is_same<T, unsigned long long>::value) {
+            return m_ir_builder->getInt64Ty();
+          }
+          else if (std::is_same<T, int>::value || std::is_same<T, unsigned int>::value) {
+            return m_ir_builder->getInt32Ty();
+          }
+          else if (std::is_same<T, short>::value || std::is_same<T, unsigned short>::value) {
+            return m_ir_builder->getInt16Ty();
+          }
+          else if (std::is_same<T, char>::value || std::is_same<T, unsigned char>::value) {
+            return m_ir_builder->getInt8Ty();
+          }
+          else if (std::is_same<T, float>::value) {
+            return m_ir_builder->getFloatTy();
+          }
+          else if (std::is_same<T, double>::value) {
+            return m_ir_builder->getDoubleTy();
+          }
+          else if (std::is_same<T, bool>::value) {
+            return m_ir_builder->getInt1Ty();
+          }
+          else if (std::is_pointer<T>::value) {
+            return m_ir_builder->getInt8PtrTy();
+          }
+          else {
+            assert(0);
+          }
+
+          return nullptr;
+        }
 
         /// Call a function
         template<class ReturnType, class Func, class... Args>
-        llvm::Value * Call(const char * name, Func function, Args... args);
+        llvm::Value * Call(const char * name, Func function, Args... args) {
+          auto fn = m_module->getFunction(name);
+          if (!fn) {
+            std::vector<llvm::Type *> fn_args_type = { args->getType()... };
+            auto fn_type = llvm::FunctionType::get(CppToLlvmType<ReturnType>(), fn_args_type, false);
+            fn = cast<llvm::Function>(m_module->getOrInsertFunction(name, fn_type));
+            fn->setCallingConv(CallingConv::X86_64_Win64);
+            // Note: not threadsafe
+            m_executableMap[name] = (Executable)(void *&)function;
+          }
+
+          std::vector<Value *> fn_args = { args... };
+          return m_ir_builder->CreateCall(fn, fn_args);
+        }
 
         /// Indirect call
         llvm::Value * IndirectCall(u32 address, llvm::Value * context_i64, bool is_function);
@@ -948,21 +988,12 @@ namespace ppu_recompiler_llvm {
         static void InitRotateMask();
     };
 
-    class RecompilationEngine : public ThreadBase {
+    class RecompilationEngine final : protected thread_t {
     public:
-        virtual ~RecompilationEngine();
+        virtual ~RecompilationEngine() override;
 
-        /// Allocate an ordinal
-        u32 AllocateOrdinal(u32 address, bool is_function);
-
-        /// Get the ordinal for the specified address
-        u32 GetOrdinal(u32 address) const;
-
-        /// Get the executable specified by the ordinal
-        const Executable GetExecutable(u32 ordinal) const;
-
-        /// Get the address of the executable lookup
-        u64 GetAddressOfExecutableLookup() const;
+        /// Get the executable for the specified address
+        const Executable &GetExecutable(u32 address, Executable default_executable);
 
         /// Notify the recompilation engine about a newly detected trace. It takes ownership of the trace.
         void NotifyTrace(ExecutionTrace * execution_trace);
@@ -970,7 +1001,10 @@ namespace ppu_recompiler_llvm {
         /// Log
         llvm::raw_fd_ostream & Log();
 
-        void Task() override;
+        void Task();
+
+        /// Make pending compiled block available
+        void FlushCompiledBlock();
 
         /// Get a pointer to the instance of this class
         static std::shared_ptr<RecompilationEngine> GetInstance();
@@ -1042,21 +1076,23 @@ namespace ppu_recompiler_llvm {
         /// Execution traces that have been already encountered. Data is the list of all blocks that this trace includes.
         std::unordered_map<ExecutionTrace::Id, std::vector<BlockEntry *>> m_processed_execution_traces;
 
-        /// Lock for accessing m_address_to_ordinal.
-        // TODO: Make this a RW lock
-        mutable std::mutex m_address_to_ordinal_lock;
+        /// Lock for accessing m_address_to_function.
+        std::recursive_mutex m_address_to_function_lock;
 
-        /// Mapping from address to ordinal
-        std::unordered_map<u32, u32> m_address_to_ordinal;
+        /// Address to ordinal cahce. Key is address. Data is the pair (function, module containing function, times hit).
+        std::unordered_map<u32, std::tuple<Executable, std::unique_ptr<llvm::ExecutionEngine>, u32>> m_address_to_function;
 
-        /// Next ordinal to allocate
-        u32 m_next_ordinal;
+        /// Compiled block waiting to be inserted to m_address_to_function
+        std::vector< std::tuple<u32, Executable, llvm::ExecutionEngine *> > m_pending_compiler_block;
+
+        /// The time at which the m_address_to_ordinal cache was last cleared
+        std::chrono::high_resolution_clock::time_point m_last_cache_clear_time;
+
+        /// Remove unused entries from the m_address_to_ordinal cache
+        void RemoveUnusedEntriesFromCache();
 
         /// PPU Compiler
         Compiler m_compiler;
-
-        /// Executable lookup table
-        Executable m_executable_lookup[10000]; // TODO: Adjust size
 
         RecompilationEngine();
 
@@ -1119,20 +1155,26 @@ namespace ppu_recompiler_llvm {
         std::shared_ptr<RecompilationEngine> m_recompilation_engine;
     };
 
-    /// PPU execution engine
-    class ExecutionEngine : public CPUDecoder {
+    /**
+     * PPU execution engine
+     * Relies on PPUInterpreter1 to execute uncompiled code.
+     * Traces execution to determine which block to compile.
+     * Use LLVM to compile block into native code.
+     */
+    class CPUHybridDecoderRecompiler : public CPUDecoder {
         friend class RecompilationEngine;
+        friend class Compiler;
     public:
-        ExecutionEngine(PPUThread & ppu);
-        ExecutionEngine() = delete;
+        CPUHybridDecoderRecompiler(PPUThread & ppu);
+        CPUHybridDecoderRecompiler() = delete;
 
-        ExecutionEngine(const ExecutionEngine & other) = delete;
-        ExecutionEngine(ExecutionEngine && other) = delete;
+        CPUHybridDecoderRecompiler(const CPUHybridDecoderRecompiler & other) = delete;
+        CPUHybridDecoderRecompiler(CPUHybridDecoderRecompiler && other) = delete;
 
-        virtual ~ExecutionEngine();
+        virtual ~CPUHybridDecoderRecompiler();
 
-        ExecutionEngine & operator = (const ExecutionEngine & other) = delete;
-        ExecutionEngine & operator = (ExecutionEngine && other) = delete;
+        CPUHybridDecoderRecompiler & operator = (const ExecutionEngine & other) = delete;
+        CPUHybridDecoderRecompiler & operator = (ExecutionEngine && other) = delete;
 
         u32 DecodeMemory(const u32 address) override;
 
@@ -1149,20 +1191,8 @@ namespace ppu_recompiler_llvm {
         /// Execution tracer
         Tracer m_tracer;
 
-        /// The time at which the m_address_to_ordinal cache was last cleared
-        mutable std::chrono::high_resolution_clock::time_point m_last_cache_clear_time;
-
-        /// Address to ordinal cahce. Key is address. Data is the pair (ordinal, times hit).
-        mutable std::unordered_map<u32, std::pair<u32, u32>> m_address_to_ordinal;
-
         /// Recompilation engine
         std::shared_ptr<RecompilationEngine> m_recompilation_engine;
-
-        /// Remove unused entries from the m_address_to_ordinal cache
-        void RemoveUnusedEntriesFromCache() const;
-
-        /// Get the executable for the specified address
-        Executable GetExecutable(u32 address, Executable default_executable) const;
 
         /// Execute a function
         static u32 ExecuteFunction(PPUThread * ppu_state, u64 context);
@@ -1173,9 +1203,6 @@ namespace ppu_recompiler_llvm {
         /// Check thread status. Returns true if the thread must exit.
         static bool PollStatus(PPUThread * ppu_state);
     };
-
-    /// Get the branch type from a branch instruction
-    BranchType GetBranchTypeFromInstruction(u32 instruction);
 }
 
 #endif // LLVM_AVAILABLE

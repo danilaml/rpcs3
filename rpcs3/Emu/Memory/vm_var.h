@@ -108,24 +108,24 @@ namespace vm
 		}
 		*/
 
-		template<typename AT> operator _ptr_base<T, 1, AT>() const
+		template<typename AT> operator _ptr_base<T, AT>() const
 		{
-			return _ptr_base<T, 1, AT>::make(m_addr);
+			return _ptr_base<T, AT>::make(m_addr);
 		}
 
-		template<typename AT> operator _ptr_base<const T, 1, AT>() const
+		template<typename AT> operator _ptr_base<const T, AT>() const
 		{
-			return _ptr_base<const T, 1, AT>::make(m_addr);
+			return _ptr_base<const T, AT>::make(m_addr);
 		}
 
-		template<typename AT> operator _ptr_base<void, 1, AT>() const
+		template<typename AT> operator _ptr_base<void, AT>() const
 		{
-			return _ptr_base<void, 1, AT>::make(m_addr);
+			return _ptr_base<void, AT>::make(m_addr);
 		}
 
-		template<typename AT> operator _ptr_base<const void, 1, AT>() const
+		template<typename AT> operator _ptr_base<const void, AT>() const
 		{
-			return _ptr_base<const void, 1, AT>::make(m_addr);
+			return _ptr_base<const void, AT>::make(m_addr);
 		}
 		
 		operator T&()
@@ -539,7 +539,7 @@ namespace vm
 		CPUThread& m_thread;
 
 	public:
-		stackvar(CPUThread& CPU, u32 size = sizeof(T), u32 align = __alignof(T))
+		stackvar(CPUThread& CPU, u32 size = sizeof32(T), u32 align = alignof32(T))
 			: m_data(CPU, size, align)
 			, m_thread(CPU)
 		{
@@ -554,9 +554,12 @@ namespace vm
 
 		stackvar(stackvar&& r) = delete;
 
-		~stackvar()
+		~stackvar() noexcept(false) // allow exceptions
 		{
-			stack_pop(m_thread, m_data.addr, m_data.old_pos);
+			if (!std::uncaught_exception()) // don't call during stack unwinding
+			{
+				stack_pop(m_thread, m_data.addr, m_data.old_pos);
+			}
 		}
 
 		stackvar& operator = (const stackvar& r)
@@ -597,6 +600,16 @@ namespace vm
 			return *m_data.ptr;
 		}
 
+		T& operator [](u32 index)
+		{
+			return m_data.ptr[index];
+		}
+
+		const T& operator [](u32 index) const
+		{
+			return m_data.ptr[index];
+		}
+
 		u32 addr() const
 		{
 			return m_data.addr;
@@ -614,24 +627,24 @@ namespace vm
 		}
 		*/
 
-		template<typename AT> operator _ptr_base<T, 1, AT>() const
+		template<typename AT> operator _ptr_base<T, AT>() const
 		{
-			return _ptr_base<T, 1, AT>::make(m_data.addr);
+			return _ptr_base<T, AT>::make(m_data.addr);
 		}
 
-		template<typename AT> operator _ptr_base<const T, 1, AT>() const
+		template<typename AT> operator _ptr_base<const T, AT>() const
 		{
-			return _ptr_base<const T, 1, AT>::make(m_data.addr);
+			return _ptr_base<const T, AT>::make(m_data.addr);
 		}
 
-		template<typename AT> operator _ptr_base<void, 1, AT>() const
+		template<typename AT> operator _ptr_base<void, AT>() const
 		{
-			return _ptr_base<void, 1, AT>::make(m_data.addr);
+			return _ptr_base<void, AT>::make(m_data.addr);
 		}
 
-		template<typename AT> operator _ptr_base<const void, 1, AT>() const
+		template<typename AT> operator _ptr_base<const void, AT>() const
 		{
-			return _ptr_base<const void, 1, AT>::make(m_data.addr);
+			return _ptr_base<const void, AT>::make(m_data.addr);
 		}
 
 		operator T&()

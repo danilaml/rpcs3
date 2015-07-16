@@ -1,13 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug - LLVM|x64">
       <Configuration>Debug - LLVM</Configuration>
       <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug - MemLeak|Win32">
-      <Configuration>Debug - MemLeak</Configuration>
-      <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Debug - MemLeak|x64">
       <Configuration>Debug - MemLeak</Configuration>
@@ -38,6 +34,7 @@
     <ClCompile Include="..\Utilities\StrFmt.cpp" />
     <ClCompile Include="..\Utilities\Thread.cpp" />
     <ClCompile Include="Emu\Cell\PPUInterpreter.cpp" />
+    <ClCompile Include="Emu\Cell\PPULLVMRecompilerCore.cpp" />
     <ClCompile Include="Emu\Cell\SPUInterpreter.cpp" />
     <ClCompile Include="Emu\RSX\CgBinaryFragmentProgram.cpp" />
     <ClCompile Include="Emu\RSX\CgBinaryVertexProgram.cpp" />
@@ -45,6 +42,7 @@
     <ClCompile Include="Emu\RSX\Common\ShaderParam.cpp" />
     <ClCompile Include="Emu\RSX\Common\VertexProgramDecompiler.cpp" />
     <ClCompile Include="Emu\RSX\GL\GLCommonDecompiler.cpp" />
+    <ClCompile Include="Emu\SysCalls\lv2\sys_dbg.cpp" />
     <ClCompile Include="Emu\SysCalls\lv2\sys_fs.cpp" />
     <ClCompile Include="Emu\SysCalls\Modules\cellFs.cpp" />
     <ClCompile Include="Emu\SysCalls\Modules\cellSpursSpu.cpp" />
@@ -147,7 +145,6 @@
     <ClCompile Include="Emu\Cell\PPUThread.cpp" />
     <ClCompile Include="Emu\Cell\RawSPUThread.cpp" />
     <ClCompile Include="Emu\Cell\SPURecompilerCore.cpp" />
-    <ClCompile Include="Emu\Cell\SPURSManager.cpp" />
     <ClCompile Include="Emu\Cell\SPUThread.cpp" />
     <ClCompile Include="Emu\CPU\CPUThread.cpp" />
     <ClCompile Include="Emu\CPU\CPUThreadManager.cpp" />
@@ -178,7 +175,6 @@
     <ClCompile Include="Emu\RSX\GL\OpenGL.cpp" />
     <ClCompile Include="Emu\RSX\GSManager.cpp" />
     <ClCompile Include="Emu\RSX\GSRender.cpp" />
-    <ClCompile Include="Emu\RSX\RSXDMA.cpp" />
     <ClCompile Include="Emu\RSX\RSXTexture.cpp" />
     <ClCompile Include="Emu\RSX\RSXThread.cpp" />
     <ClCompile Include="Emu\Memory\vm.cpp" />
@@ -231,7 +227,6 @@
     <ClCompile Include="Emu\SysCalls\Modules\cellJpgEnc.cpp" />
     <ClCompile Include="Emu\SysCalls\Modules\cellKey2char.cpp" />
     <ClCompile Include="Emu\SysCalls\Modules\cellL10n.cpp" />
-    <ClCompile Include="Emu\SysCalls\Modules\cellLv2dbg.cpp" />
     <ClCompile Include="Emu\SysCalls\Modules\cellMic.cpp" />
     <ClCompile Include="Emu\SysCalls\Modules\cellMsgDialog.cpp" />
     <ClCompile Include="Emu\SysCalls\Modules\cellMusicDecode.cpp" />
@@ -282,6 +277,7 @@
     <ClCompile Include="Emu\SysCalls\Modules\cellMouse.cpp" />
     <ClCompile Include="Emu\SysCalls\Modules\cellPad.cpp" />
     <ClCompile Include="Emu\SysCalls\Modules\sysPrxForUser.cpp" />
+    <ClCompile Include="Emu\SysCalls\Modules\sys_lv2dbg.cpp" />
     <ClCompile Include="Emu\SysCalls\Modules\sys_http.cpp" />
     <ClCompile Include="Emu\SysCalls\Modules\sys_io.cpp" />
     <ClCompile Include="Emu\SysCalls\Modules\sys_libc.cpp" />
@@ -347,14 +343,64 @@
     <ClInclude Include="Emu\ARMv7\Modules\psv_event_flag.h" />
     <ClInclude Include="Emu\ARMv7\Modules\psv_mutex.h" />
     <ClInclude Include="Emu\ARMv7\Modules\psv_sema.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceAppMgr.h" />
     <ClInclude Include="Emu\ARMv7\Modules\sceAppUtil.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceAudio.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceAudiodec.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceAudioenc.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceAudioIn.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceCamera.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceCodecEngine.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceCommonDialog.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceCtrl.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceDbg.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceDeci4p.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceDeflt.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceDisplay.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceFiber.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceFios.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceFpu.h" />
     <ClInclude Include="Emu\ARMv7\Modules\sceGxm.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceHttp.h" />
     <ClInclude Include="Emu\ARMv7\Modules\sceIme.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceJpeg.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceJpegEnc.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceLibc.h" />
     <ClInclude Include="Emu\ARMv7\Modules\sceLibKernel.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceLibm.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceLibstdcxx.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceLiveArea.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceLocation.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceMd5.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceMotion.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceMt19937.h" />
     <ClInclude Include="Emu\ARMv7\Modules\sceNet.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceNetCtl.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceNgs.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceNpBasic.h" />
     <ClInclude Include="Emu\ARMv7\Modules\sceNpCommon.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceNpManager.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceNpMatching.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceNpScore.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceNpUtility.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\scePerf.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\scePgf.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\scePhotoExport.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceRazorCapture.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceRtc.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceSas.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceScreenShot.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceSqlite.h" />
     <ClInclude Include="Emu\ARMv7\Modules\sceSsl.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceSulpha.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceSysmodule.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceSystemGesture.h" />
     <ClInclude Include="Emu\ARMv7\Modules\sceTouch.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceUlt.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceVideodec.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceVoice.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceVoiceQoS.h" />
+    <ClInclude Include="Emu\ARMv7\Modules\sceXml.h" />
     <ClInclude Include="Emu\ARMv7\PSVFuncList.h" />
     <ClInclude Include="Emu\ARMv7\PSVObjectList.h" />
     <ClInclude Include="Emu\Audio\AL\OpenALThread.h" />
@@ -383,7 +429,6 @@
     <ClInclude Include="Emu\Cell\SPUInterpreter2.h" />
     <ClInclude Include="Emu\Cell\SPUOpcodes.h" />
     <ClInclude Include="Emu\Cell\SPURecompiler.h" />
-    <ClInclude Include="Emu\Cell\SPURSManager.h" />
     <ClInclude Include="Emu\Cell\SPUThread.h" />
     <ClInclude Include="Emu\CPU\CPUDecoder.h" />
     <ClInclude Include="Emu\CPU\CPUDisAsm.h" />
@@ -436,7 +481,6 @@
     <ClInclude Include="Emu\RSX\GSManager.h" />
     <ClInclude Include="Emu\RSX\GSRender.h" />
     <ClInclude Include="Emu\RSX\Null\NullGSRender.h" />
-    <ClInclude Include="Emu\RSX\RSXDMA.h" />
     <ClInclude Include="Emu\RSX\RSXFragmentProgram.h" />
     <ClInclude Include="Emu\RSX\RSXTexture.h" />
     <ClInclude Include="Emu\RSX\RSXThread.h" />
@@ -452,6 +496,7 @@
     <ClInclude Include="Emu\SysCalls\LogBase.h" />
     <ClInclude Include="Emu\SysCalls\lv2\sleep_queue.h" />
     <ClInclude Include="Emu\SysCalls\lv2\sys_cond.h" />
+    <ClInclude Include="Emu\SysCalls\lv2\sys_dbg.h" />
     <ClInclude Include="Emu\SysCalls\lv2\sys_event.h" />
     <ClInclude Include="Emu\SysCalls\lv2\sys_event_flag.h" />
     <ClInclude Include="Emu\SysCalls\lv2\sys_fs.h" />
@@ -478,6 +523,8 @@
     <ClInclude Include="Emu\SysCalls\Modules\cellAdec.h" />
     <ClInclude Include="Emu\SysCalls\Modules\cellAtrac.h" />
     <ClInclude Include="Emu\SysCalls\Modules\cellAudio.h" />
+    <ClInclude Include="Emu\SysCalls\Modules\cellAudioIn.h" />
+    <ClInclude Include="Emu\SysCalls\Modules\cellAudioOut.h" />
     <ClInclude Include="Emu\SysCalls\Modules\cellCamera.h" />
     <ClInclude Include="Emu\SysCalls\Modules\cellDmux.h" />
     <ClInclude Include="Emu\SysCalls\Modules\cellFiber.h" />
@@ -526,6 +573,7 @@
     <ClInclude Include="Emu\SysCalls\Modules\cellKb.h" />
     <ClInclude Include="Emu\SysCalls\Modules\cellMouse.h" />
     <ClInclude Include="Emu\SysCalls\Modules\sysPrxForUser.h" />
+    <ClInclude Include="Emu\SysCalls\Modules\sys_lv2dbg.h" />
     <ClInclude Include="Emu\SysCalls\Modules\sys_net.h" />
     <ClInclude Include="Emu\SysCalls\SC_FUNC.h" />
     <ClInclude Include="Emu\SysCalls\SysCalls.h" />
@@ -550,34 +598,37 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - LLVM|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - MemLeak|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>false</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - LLVM|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>false</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug - MemLeak|Win32'">
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -599,33 +650,33 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>.\;..\;..\minidx9\Include;..\asmjit\src\asmjit;..\wxWidgets\include\msvc;..\wxWidgets\include;.\OpenAL\include;..\ffmpeg\WindowsInclude;..\ffmpeg\Windows\x86_64\Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);..\llvm\include;..\llvm_build\include</IncludePath>
+    <IncludePath>.\;..\;..\minidx9\Include;..\asmjit\src\asmjit;..\wxWidgets\include\msvc;..\wxWidgets\include;.\OpenAL\include;..\ffmpeg\WindowsInclude;..\ffmpeg\Windows\x86_64\Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);..\llvm\include;..\llvm_build\include;$(UniversalCRT_IncludePath)</IncludePath>
     <IntDir>$(Platform)\$(Configuration)\emucore\</IntDir>
-    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(UniversalCRT_LibraryPath_x64);$(LibraryPath)</LibraryPath>
     <ExcludePath>$(ExcludePath)</ExcludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - LLVM|x64'">
-    <IncludePath>.\;..\;..\minidx9\Include;..\asmjit\src\asmjit;..\wxWidgets\include\msvc;..\wxWidgets\include;.\OpenAL\include;..\ffmpeg\WindowsInclude;..\ffmpeg\Windows\x86_64\Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);..\llvm\include;..\llvm_build\include</IncludePath>
+    <IncludePath>.\;..\;..\minidx9\Include;..\asmjit\src\asmjit;..\wxWidgets\include\msvc;..\wxWidgets\include;.\OpenAL\include;..\ffmpeg\WindowsInclude;..\ffmpeg\Windows\x86_64\Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);..\llvm\include;..\llvm_build\include;$(UniversalCRT_IncludePath)</IncludePath>
     <IntDir>$(Platform)\$(Configuration)\emucore\</IntDir>
     <LibraryPath>$(LibraryPath)</LibraryPath>
     <ExcludePath>$(ExcludePath)</ExcludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - MemLeak|x64'">
-    <IncludePath>.\;..\;..\minidx9\Include;..\asmjit\src\asmjit;..\wxWidgets\include\msvc;..\wxWidgets\include;.\OpenAL\include;..\ffmpeg\WindowsInclude;..\ffmpeg\Windows\x86_64\Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);..\llvm\include;..\llvm_build\include</IncludePath>
+    <IncludePath>.\;..\;..\minidx9\Include;..\asmjit\src\asmjit;..\wxWidgets\include\msvc;..\wxWidgets\include;.\OpenAL\include;..\ffmpeg\WindowsInclude;..\ffmpeg\Windows\x86_64\Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);..\llvm\include;..\llvm_build\include;$(UniversalCRT_IncludePath)</IncludePath>
     <IntDir>$(Platform)\$(Configuration)\emucore\</IntDir>
-    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(UniversalCRT_LibraryPath_x64);$(LibraryPath)</LibraryPath>
     <ExcludePath>$(ExcludePath)</ExcludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>.\;..\;..\minidx9\Include;..\asmjit\src\asmjit;..\wxWidgets\include\msvc;..\wxWidgets\include;.\OpenAL\include;..\ffmpeg\WindowsInclude;..\ffmpeg\Windows\x86_64\Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);..\llvm\include;..\llvm_build\include</IncludePath>
+    <IncludePath>.\;..\;..\minidx9\Include;..\asmjit\src\asmjit;..\wxWidgets\include\msvc;..\wxWidgets\include;.\OpenAL\include;..\ffmpeg\WindowsInclude;..\ffmpeg\Windows\x86_64\Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);..\llvm\include;..\llvm_build\include;$(UniversalCRT_IncludePath)</IncludePath>
     <IntDir>$(Platform)\$(Configuration)\emucore\</IntDir>
-    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(UniversalCRT_LibraryPath_x64);$(LibraryPath)</LibraryPath>
     <ExcludePath>$(ExcludePath)</ExcludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - LLVM|x64'">
-    <IncludePath>.\;..\;..\minidx9\Include;..\asmjit\src\asmjit;..\wxWidgets\include\msvc;..\wxWidgets\include;.\OpenAL\include;..\ffmpeg\WindowsInclude;..\ffmpeg\Windows\x86_64\Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);..\llvm\include;..\llvm_build\include</IncludePath>
+    <IncludePath>.\;..\;..\minidx9\Include;..\asmjit\src\asmjit;..\wxWidgets\include\msvc;..\wxWidgets\include;.\OpenAL\include;..\ffmpeg\WindowsInclude;..\ffmpeg\Windows\x86_64\Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);..\llvm\include;..\llvm_build\include;$(UniversalCRT_IncludePath)</IncludePath>
     <IntDir>$(Platform)\$(Configuration)\emucore\</IntDir>
-    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(UniversalCRT_LibraryPath_x64);$(LibraryPath)</LibraryPath>
     <ExcludePath>$(ExcludePath)</ExcludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -652,7 +703,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>false</SDLCheck>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PreprocessorDefinitions>_UNICODE;UNICODE;LLVM_AVAILABLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_UNICODE;UNICODE;LLVM_AVAILABLE;%(PreprocessorDefinitions);DX12_SUPPORT</PreprocessorDefinitions>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <ExceptionHandling>Async</ExceptionHandling>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -664,7 +715,7 @@
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>..\llvm_build\Debug\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LLVMJIT.lib;LLVMVectorize.lib;LLVMX86CodeGen.lib;LLVMX86Disassembler.lib;LLVMExecutionEngine.lib;LLVMAsmPrinter.lib;LLVMSelectionDAG.lib;LLVMCodeGen.lib;LLVMScalarOpts.lib;LLVMInstCombine.lib;LLVMTransformUtils.lib;LLVMipa.lib;LLVMAnalysis.lib;LLVMTarget.lib;LLVMX86Desc.lib;LLVMX86AsmPrinter.lib;LLVMObject.lib;LLVMMCParser.lib;LLVMBitReader.lib;LLVMCore.lib;LLVMX86Utils.lib;LLVMMC.lib;LLVMX86Info.lib;LLVMSupport.lib;LLVMMCDisassembler.lib</AdditionalDependencies>
+      <AdditionalDependencies>LLVMMCJIT.lib;LLVMRuntimeDyld.lib;LLVMVectorize.lib;LLVMX86CodeGen.lib;LLVMX86Disassembler.lib;LLVMExecutionEngine.lib;LLVMAsmPrinter.lib;LLVMSelectionDAG.lib;LLVMCodeGen.lib;LLVMScalarOpts.lib;LLVMInstCombine.lib;LLVMTransformUtils.lib;LLVMipa.lib;LLVMAnalysis.lib;LLVMTarget.lib;LLVMX86Desc.lib;LLVMX86AsmPrinter.lib;LLVMObject.lib;LLVMMCParser.lib;LLVMBitReader.lib;LLVMCore.lib;LLVMX86Utils.lib;LLVMMC.lib;LLVMX86Info.lib;LLVMSupport.lib;LLVMMCDisassembler.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - MemLeak|x64'">
@@ -726,7 +777,7 @@
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>..\llvm_build\Release\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LLVMJIT.lib;LLVMVectorize.lib;LLVMX86CodeGen.lib;LLVMX86Disassembler.lib;LLVMExecutionEngine.lib;LLVMAsmPrinter.lib;LLVMSelectionDAG.lib;LLVMCodeGen.lib;LLVMScalarOpts.lib;LLVMInstCombine.lib;LLVMTransformUtils.lib;LLVMipa.lib;LLVMAnalysis.lib;LLVMTarget.lib;LLVMX86Desc.lib;LLVMX86AsmPrinter.lib;LLVMObject.lib;LLVMMCParser.lib;LLVMBitReader.lib;LLVMCore.lib;LLVMX86Utils.lib;LLVMMC.lib;LLVMX86Info.lib;LLVMSupport.lib;LLVMMCDisassembler.lib</AdditionalDependencies>
+      <AdditionalDependencies>LLVMMCJIT.lib;LLVMRuntimeDyld.lib;LLVMVectorize.lib;LLVMX86CodeGen.lib;LLVMX86Disassembler.lib;LLVMExecutionEngine.lib;LLVMAsmPrinter.lib;LLVMSelectionDAG.lib;LLVMCodeGen.lib;LLVMScalarOpts.lib;LLVMInstCombine.lib;LLVMTransformUtils.lib;LLVMipa.lib;LLVMAnalysis.lib;LLVMTarget.lib;LLVMX86Desc.lib;LLVMX86AsmPrinter.lib;LLVMObject.lib;LLVMMCParser.lib;LLVMBitReader.lib;LLVMCore.lib;LLVMX86Utils.lib;LLVMMC.lib;LLVMX86Info.lib;LLVMSupport.lib;LLVMMCDisassembler.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
