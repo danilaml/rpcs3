@@ -1003,11 +1003,18 @@ namespace ppu_recompiler_llvm {
 
         void Task();
 
-        /// Make pending compiled block available
-        void FlushCompiledBlock();
-
         /// Get a pointer to the instance of this class
         static std::shared_ptr<RecompilationEngine> GetInstance();
+
+        /** Used to synchronise PPU thread and compile block
+          * The Recompiler Engine asks others PPUThread to wait.
+          * PPU thread increases waiting thread counter.
+          * When the counter reachs 2, the recompiler engine register the new block
+          * and release the waiting_to_flush value, allowing PPUThreads to continue
+          *register a new compilation unit
+        **/
+        std::atomic<bool> m_waiting_to_flush;
+        std::atomic<int> m_waiting_thread;
 
     private:
         /// An entry in the block table
@@ -1077,13 +1084,10 @@ namespace ppu_recompiler_llvm {
         std::unordered_map<ExecutionTrace::Id, std::vector<BlockEntry *>> m_processed_execution_traces;
 
         /// Lock for accessing m_address_to_function.
-        std::recursive_mutex m_address_to_function_lock;
+        std::mutex m_address_to_function_lock;
 
         /// Address to ordinal cahce. Key is address. Data is the pair (function, module containing function, times hit).
         std::unordered_map<u32, std::tuple<Executable, std::unique_ptr<llvm::ExecutionEngine>, u32>> m_address_to_function;
-
-        /// Compiled block waiting to be inserted to m_address_to_function
-        std::vector< std::tuple<u32, Executable, llvm::ExecutionEngine *> > m_pending_compiler_block;
 
         /// The time at which the m_address_to_ordinal cache was last cleared
         std::chrono::high_resolution_clock::time_point m_last_cache_clear_time;

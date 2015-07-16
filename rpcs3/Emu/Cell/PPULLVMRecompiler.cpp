@@ -287,6 +287,7 @@ RecompilationEngine::RecompilationEngine()
     : m_log(nullptr)
     , m_last_cache_clear_time(std::chrono::high_resolution_clock::now())
     , m_compiler(*this, CPUHybridDecoderRecompiler::ExecuteFunction, CPUHybridDecoderRecompiler::ExecuteTillReturn, CPUHybridDecoderRecompiler::PollStatus) {
+    m_waiting_to_flush = false;
     m_compiler.RunAllTests();
 }
 
@@ -296,7 +297,7 @@ RecompilationEngine::~RecompilationEngine() {
 }
 
 const Executable &RecompilationEngine::GetExecutable(u32 address, Executable default_executable) {
-  std::lock_guard<std::recursive_mutex> lock(m_address_to_function_lock);
+  std::lock_guard<std::mutex> lock(m_address_to_function_lock);
   auto i = m_address_to_function.find(address);
   if (i != m_address_to_function.end())
     return std::get<0>(i->second);
@@ -394,7 +395,7 @@ void RecompilationEngine::Task() {
 
             if (candidate != nullptr) {
                 Log() << "Recompiling: " << candidate->ToString() << "\n";
-//                CompileBlock(*candidate);
+                CompileBlock(*candidate);
                 work_done_this_iteration = true;
             }
 
@@ -524,26 +525,18 @@ void RecompilationEngine::CompileBlock(BlockEntry & block_entry) {
     const std::pair<Executable, llvm::ExecutionEngine *> &compileResult =
       m_compiler.Compile(fmt::Format("fn_0x%08X_%u", block_entry.cfg.start_address, block_entry.revision++), block_entry.cfg,
                          block_entry.IsFunction() ? true : false /*generate_linkable_exits*/);
-    {
-      std::lock_guard<std::recursive_mutex> lock(m_address_to_function_lock);
-      m_pending_compiler_block.push_back(std::make_tuple(block_entry.cfg.start_address, compileResult.first, compileResult.second));
-    }
+    m_waiting_thread = 0;
+    m_waiting_to_flush = true;
+
+    while (m_waiting_thread < 1)
+      std::this_thread::yield();
+
+    std::get<1>(m_address_to_function[block_entry.cfg.start_address]) = std::unique_ptr<llvm::ExecutionEngine>(compileResult.second);
+    std::get<0>(m_address_to_function[block_entry.cfg.start_address]) = compileResult.first;
     block_entry.last_compiled_cfg_size = block_entry.cfg.GetSize();
     block_entry.is_compiled = true;
-}
 
-void RecompilationEngine::FlushCompiledBlock() {
-  std::lock_guard<std::recursive_mutex> lock(m_address_to_function_lock);
-//    RemoveUnusedEntriesFromCache();
-
-    for (auto It : m_pending_compiler_block)
-    {
-      auto tmp = m_address_to_function.find(std::get<0>(It));
-      tmp->second;
-      std::get<1>(m_address_to_function[std::get<0>(It)]) = std::unique_ptr<llvm::ExecutionEngine>(std::get<2>(It));
-      std::get<0>(m_address_to_function[std::get<0>(It)]) = std::get<1>(It);
-    }
-    m_pending_compiler_block.clear();
+    m_waiting_to_flush = false;
 }
 
 std::shared_ptr<RecompilationEngine> RecompilationEngine::GetInstance() {
@@ -648,9 +641,13 @@ ppu_recompiler_llvm::CPUHybridDecoderRecompiler::~CPUHybridDecoderRecompiler() {
 }
 
 u32 ppu_recompiler_llvm::CPUHybridDecoderRecompiler::DecodeMemory(const u32 address) {
+  if (m_recompilation_engine->m_waiting_to_flush)
+  {
+    m_recompilation_engine->m_waiting_thread++;
+    while (m_recompilation_engine->m_waiting_to_flush)
+      std::this_thread::yield();
+  }
     ExecuteFunction(&m_ppu, 0);
-    CPUHybridDecoderRecompiler *execution_engine = (CPUHybridDecoderRecompiler *) m_ppu.GetDecoder();
-    execution_engine->m_recompilation_engine->FlushCompiledBlock();
     return 0;
 }
 
