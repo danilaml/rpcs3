@@ -291,6 +291,7 @@ RecompilationEngine::RecompilationEngine()
 }
 
 RecompilationEngine::~RecompilationEngine() {
+  m_address_to_function.clear();
     join();
 }
 
