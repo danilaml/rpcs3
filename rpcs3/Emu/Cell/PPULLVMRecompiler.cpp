@@ -732,6 +732,8 @@ u32 ppu_recompiler_llvm::CPUHybridDecoderRecompiler::ExecuteTillReturn(PPUThread
             switch (branch_type) {
             case BranchType::Return:
                 execution_engine->m_tracer.Trace(Tracer::TraceType::Return, 0, 0);
+                if (Emu.GetCPUThreadStop() == ppu_state->PC)
+                  ppu_state->FastStop();
                 terminateIteration = true;
                 break;
             case BranchType::FunctionCall:
