@@ -1011,7 +1011,7 @@ namespace ppu_recompiler_llvm {
          * Get the executable for the specified address if a compiled version is
          * available, otherwise returns nullptr.
          **/
-        const Executable *GetCompiledExecutableIfAvailable(u32 address);
+        const Executable *GetCompiledExecutableIfAvailable(u32 address, std::mutex*);
 
         /// Notify the recompilation engine about a newly detected trace. It takes ownership of the trace.
         void NotifyTrace(ExecutionTrace * execution_trace);
@@ -1110,8 +1110,8 @@ namespace ppu_recompiler_llvm {
         /// Lock for accessing m_address_to_function.
         std::mutex m_address_to_function_lock;
 
-        /// (function, module containing function, times hit, number in use, is useable).
-        typedef std::tuple<Executable, std::unique_ptr<llvm::ExecutionEngine>, u32, std::atomic<int>, std::atomic<bool>> ExecutableStorage;
+        /// (function, module containing function, times hit, mutex for access).
+        typedef std::tuple<Executable, std::unique_ptr<llvm::ExecutionEngine>, u32, std::mutex> ExecutableStorage;
         /// Address to ordinal cahce. Key is address.
         std::unordered_map<u32, ExecutableStorage> m_address_to_function;
 
