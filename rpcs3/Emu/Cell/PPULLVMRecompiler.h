@@ -913,7 +913,7 @@ namespace ppu_recompiler_llvm {
 
         /// Convert a C++ type to an LLVM type
         template<class T>
-        llvm::Type * Compiler::CppToLlvmType() {
+        llvm::Type * CppToLlvmType() {
           if (std::is_void<T>::value) {
             return m_ir_builder->getVoidTy();
           }
@@ -955,13 +955,13 @@ namespace ppu_recompiler_llvm {
           if (!fn) {
             std::vector<llvm::Type *> fn_args_type = { args->getType()... };
             auto fn_type = llvm::FunctionType::get(CppToLlvmType<ReturnType>(), fn_args_type, false);
-            fn = cast<llvm::Function>(m_module->getOrInsertFunction(name, fn_type));
-            fn->setCallingConv(CallingConv::X86_64_Win64);
+            fn = llvm::cast<llvm::Function>(m_module->getOrInsertFunction(name, fn_type));
+            fn->setCallingConv(llvm::CallingConv::X86_64_Win64);
             // Note: not threadsafe
             m_executableMap[name] = (Executable)(void *&)function;
           }
 
-          std::vector<Value *> fn_args = { args... };
+          std::vector<llvm::Value *> fn_args = { args... };
           return m_ir_builder->CreateCall(fn, fn_args);
         }
 
