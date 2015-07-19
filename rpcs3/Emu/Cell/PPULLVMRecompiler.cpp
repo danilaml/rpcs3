@@ -289,7 +289,8 @@ RecompilationEngine::RecompilationEngine()
     , m_last_cache_clear_time(std::chrono::high_resolution_clock::now())
     , m_compiler(*this, CPUHybridDecoderRecompiler::ExecuteFunction, CPUHybridDecoderRecompiler::ExecuteTillReturn, CPUHybridDecoderRecompiler::PollStatus) {
     m_recompilation_thread_waiting_to_flush = false;
-		m_executing_compiled_block_threads_count = 0;
+    m_executing_compiled_block_threads_count = 0;
+    m_waiting_before_executing_compiled_block_threads_count = 0;
     m_compiler.RunAllTests();
 }
 
@@ -538,7 +539,7 @@ void RecompilationEngine::CompileBlock(BlockEntry & block_entry) {
     const std::pair<Executable, llvm::ExecutionEngine *> &compileResult =
       m_compiler.Compile(fmt::Format("fn_0x%08X_%u", block_entry.cfg.start_address, block_entry.revision++), block_entry.cfg,
                          block_entry.IsFunction() ? true : false /*generate_linkable_exits*/);
-    m_recompilation_thread_waiting_to_flush = true;
+    m_recompilation_thread_waiting_to_flush.store(true);
 
     while (m_waiting_before_executing_compiled_block_threads_count < m_executing_compiled_block_threads_count)
       std::this_thread::yield();
@@ -548,7 +549,7 @@ void RecompilationEngine::CompileBlock(BlockEntry & block_entry) {
     block_entry.last_compiled_cfg_size = block_entry.cfg.GetSize();
     block_entry.is_compiled = true;
 
-    m_recompilation_thread_waiting_to_flush = false;
+    m_recompilation_thread_waiting_to_flush.store(false);
 }
 
 std::shared_ptr<RecompilationEngine> RecompilationEngine::GetInstance() {
