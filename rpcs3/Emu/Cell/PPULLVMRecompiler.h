@@ -992,8 +992,18 @@ namespace ppu_recompiler_llvm {
     public:
         virtual ~RecompilationEngine() override;
 
-        /// Get the executable for the specified address
-        const Executable &GetExecutable(u32 address, Executable default_executable);
+        /**
+         * Get the executable for the specified address
+         * The pointer is always valid during the lifetime of RecompilationEngine
+         * but the function pointed to can be updated.
+         **/
+        const Executable *GetExecutable(u32 address, Executable default_executable);
+
+        /**
+         * Get the executable for the specified address if a compiled version is
+         * available, otherwise returns nullptr.
+         **/
+        const Executable *GetCompiledExecutableIfAvailable(u32 address);
 
         /// Notify the recompilation engine about a newly detected trace. It takes ownership of the trace.
         void NotifyTrace(ExecutionTrace * execution_trace);
@@ -1013,9 +1023,9 @@ namespace ppu_recompiler_llvm {
           * and release the waiting_to_flush value, allowing PPUThreads to continue
           *register a new compilation unit
         **/
-        std::atomic<bool> m_waiting_to_flush;
-        std::atomic<int> m_waiting_thread;
-        std::atomic<int> m_current_running_thread;
+        std::atomic<bool> m_recompilation_thread_waiting_to_flush;
+        std::atomic<int> m_waiting_before_executing_compiled_block_threads_count;
+        std::atomic<int> m_executing_compiled_block_threads_count;
 
     private:
         /// An entry in the block table

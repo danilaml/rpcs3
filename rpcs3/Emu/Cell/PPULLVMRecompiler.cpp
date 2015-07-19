@@ -288,8 +288,8 @@ RecompilationEngine::RecompilationEngine()
     : m_log(nullptr)
     , m_last_cache_clear_time(std::chrono::high_resolution_clock::now())
     , m_compiler(*this, CPUHybridDecoderRecompiler::ExecuteFunction, CPUHybridDecoderRecompiler::ExecuteTillReturn, CPUHybridDecoderRecompiler::PollStatus) {
-    m_waiting_to_flush = false;
-    m_current_running_thread = 0;
+    m_recompilation_thread_waiting_to_flush = false;
+		m_executing_compiled_block_threads_count = 0;
     m_compiler.RunAllTests();
 }
 
@@ -298,13 +298,24 @@ RecompilationEngine::~RecompilationEngine() {
     join();
 }
 
-const Executable &RecompilationEngine::GetExecutable(u32 address, Executable default_executable) {
+const Executable *RecompilationEngine::GetExecutable(u32 address, Executable default_executable) {
   std::lock_guard<std::mutex> lock(m_address_to_function_lock);
   auto i = m_address_to_function.find(address);
   if (i != m_address_to_function.end())
-    return std::get<0>(i->second);
+    return &(std::get<0>(i->second));
   m_address_to_function[address] = std::make_tuple(default_executable, nullptr, 1);
-  return std::get<0>(m_address_to_function[address]);
+  return &(std::get<0>(m_address_to_function[address]));
+}
+
+const Executable *RecompilationEngine::GetCompiledExecutableIfAvailable(u32 address)
+{
+  std::lock_guard<std::mutex> lock(m_address_to_function_lock);
+  auto i = m_address_to_function.find(address);
+  if (i == m_address_to_function.end())
+    return nullptr;
+  if(std::get<1>(i->second) == nullptr)
+    return nullptr;
+  return &(std::get<0>(i->second));
 }
 
 void RecompilationEngine::RemoveUnusedEntriesFromCache() {
@@ -527,10 +538,9 @@ void RecompilationEngine::CompileBlock(BlockEntry & block_entry) {
     const std::pair<Executable, llvm::ExecutionEngine *> &compileResult =
       m_compiler.Compile(fmt::Format("fn_0x%08X_%u", block_entry.cfg.start_address, block_entry.revision++), block_entry.cfg,
                          block_entry.IsFunction() ? true : false /*generate_linkable_exits*/);
-    m_waiting_thread = 0;
-    m_waiting_to_flush = true;
+    m_recompilation_thread_waiting_to_flush = true;
 
-    while (m_waiting_thread < m_current_running_thread)
+    while (m_waiting_before_executing_compiled_block_threads_count < m_executing_compiled_block_threads_count)
       std::this_thread::yield();
 
     std::get<1>(m_address_to_function[block_entry.cfg.start_address]) = std::unique_ptr<llvm::ExecutionEngine>(compileResult.second);
@@ -538,7 +548,7 @@ void RecompilationEngine::CompileBlock(BlockEntry & block_entry) {
     block_entry.last_compiled_cfg_size = block_entry.cfg.GetSize();
     block_entry.is_compiled = true;
 
-    m_waiting_to_flush = false;
+    m_recompilation_thread_waiting_to_flush = false;
 }
 
 std::shared_ptr<RecompilationEngine> RecompilationEngine::GetInstance() {
@@ -677,50 +687,45 @@ static BranchType GetBranchTypeFromInstruction(u32 instruction) {
   return BranchType::NonBranch;
 }
 
+static
 thread_local bool signal = false;
 
 u32 ppu_recompiler_llvm::CPUHybridDecoderRecompiler::ExecuteTillReturn(PPUThread * ppu_state, u64 context) {
     CPUHybridDecoderRecompiler *execution_engine = (CPUHybridDecoderRecompiler *)ppu_state->GetDecoder();
 
-
-
     if (context)
         execution_engine->m_tracer.Trace(Tracer::TraceType::ExitFromCompiledFunction, context >> 32, context & 0xFFFFFFFF);
 
-    bool terminateIteration = false;
-
     while (PollStatus(ppu_state) == false) {
-        terminateIteration = false;
-        Executable executable = execution_engine->m_recompilation_engine->GetExecutable(ppu_state->PC, ExecuteTillReturn);
-        if (executable != ExecuteTillReturn && executable != ExecuteFunction) {
+        const Executable *executable = execution_engine->m_recompilation_engine->GetCompiledExecutableIfAvailable(ppu_state->PC);
+        if (executable) {
             bool signal_local = signal;
             if (!signal_local)
             {
                 signal = true;
-                execution_engine->m_recompilation_engine->m_current_running_thread.fetch_add(1);
-                if (execution_engine->m_recompilation_engine->m_current_running_thread.load() == 3)
-                    printf("here");
+                execution_engine->m_recompilation_engine->m_executing_compiled_block_threads_count.fetch_add(1);
             }
 
-            if (execution_engine->m_recompilation_engine->m_waiting_to_flush)
+            if (execution_engine->m_recompilation_engine->m_recompilation_thread_waiting_to_flush)
             {
-                execution_engine->m_recompilation_engine->m_waiting_thread++;
-                while (execution_engine->m_recompilation_engine->m_waiting_to_flush)
+                execution_engine->m_recompilation_engine->m_waiting_before_executing_compiled_block_threads_count.fetch_add(1);
+                while (execution_engine->m_recompilation_engine->m_recompilation_thread_waiting_to_flush)
                     std::this_thread::yield();
+                execution_engine->m_recompilation_engine->m_waiting_before_executing_compiled_block_threads_count.fetch_sub(1);
             }
 
             auto entry = ppu_state->PC;
-            u32 exit  = (u32)executable(ppu_state, 0);
+            u32 exit  = (u32)(*executable)(ppu_state, 0);
             execution_engine->m_tracer.Trace(Tracer::TraceType::ExitFromCompiledBlock, entry, exit);
 
             if (!signal_local)
             {
                 signal = false;
-                execution_engine->m_recompilation_engine->m_current_running_thread.fetch_sub(1);
+                execution_engine->m_recompilation_engine->m_executing_compiled_block_threads_count.fetch_sub(1);
             }
 
             if (exit == 0)
-              terminateIteration = true;
+              return 0;
         } else {
             execution_engine->m_tracer.Trace(Tracer::TraceType::Instruction, ppu_state->PC, 0);
             u32 instruction = vm::ps3::read32(ppu_state->PC);
@@ -734,12 +739,11 @@ u32 ppu_recompiler_llvm::CPUHybridDecoderRecompiler::ExecuteTillReturn(PPUThread
                 execution_engine->m_tracer.Trace(Tracer::TraceType::Return, 0, 0);
                 if (Emu.GetCPUThreadStop() == ppu_state->PC)
                   ppu_state->FastStop();
-                terminateIteration = true;
-                break;
+                return 0;
             case BranchType::FunctionCall:
                 execution_engine->m_tracer.Trace(Tracer::TraceType::CallFunction, ppu_state->PC, 0);
                 executable = execution_engine->m_recompilation_engine->GetExecutable(ppu_state->PC, ExecuteFunction);
-                executable(ppu_state, 0);
+                (*executable)(ppu_state, 0);
                 break;
             case BranchType::LocalBranch:
                 break;
@@ -750,8 +754,6 @@ u32 ppu_recompiler_llvm::CPUHybridDecoderRecompiler::ExecuteTillReturn(PPUThread
                 break;
             }
         }
-        if (terminateIteration)
-          break;
     }
 
     return 0;
