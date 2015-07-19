@@ -988,6 +988,14 @@ namespace ppu_recompiler_llvm {
         static void InitRotateMask();
     };
 
+    /**
+     * Manages block compilation.
+     * PPUInterpreter1 execution is traced (using Tracer class)
+     * Periodically RecompilationEngine process traces result to find blocks
+     * whose compilation can improve performances.
+     * It then builds them asynchroneously and update the executable mapping
+     * using atomic based locks to avoid undefined behavior.
+     **/
     class RecompilationEngine final : protected thread_t {
     public:
         virtual ~RecompilationEngine() override;
@@ -1016,12 +1024,17 @@ namespace ppu_recompiler_llvm {
         /// Get a pointer to the instance of this class
         static std::shared_ptr<RecompilationEngine> GetInstance();
 
-        /** Used to synchronise PPU thread and compile block
-          * The Recompiler Engine asks others PPUThread to wait.
-          * PPU thread increases waiting thread counter.
-          * When the counter reachs 2, the recompiler engine register the new block
-          * and release the waiting_to_flush value, allowing PPUThreads to continue
-          *register a new compilation unit
+       /** Used to synchronise PPU thread and compile block
+         * The Recompiler Engine asks others PPUThread to wait.
+         * PPU thread increases waiting thread counter.
+         * When the counter reachs 2, the recompiler engine register the new block
+         * and release the waiting_to_flush value, allowing PPUThreads to continue
+         * register a new compilation unit
+         * NOTE: This may introduce deadlock if one of the thread crashs or if it
+         * contains a loop that never ends. It also fails to report compiled blocks
+         * used as callback. One fix is to encapsulate compiled block execution inside
+         * a function reporting exact block address being used and lock execution
+         * in a per address fashion, not interupting all executions.
         **/
         std::atomic<bool> m_recompilation_thread_waiting_to_flush;
         std::atomic<int> m_waiting_before_executing_compiled_block_threads_count;
