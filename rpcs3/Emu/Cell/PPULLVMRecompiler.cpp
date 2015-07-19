@@ -301,9 +301,10 @@ RecompilationEngine::~RecompilationEngine() {
 
 const Executable *RecompilationEngine::GetExecutable(u32 address, Executable default_executable) {
   std::lock_guard<std::mutex> lock(m_address_to_function_lock);
-  auto i = m_address_to_function.find(address);
-  if (i != m_address_to_function.end())
-    return &(std::get<0>(i->second));
+  std::unordered_map<u32, std::tuple<Executable, std::unique_ptr<llvm::ExecutionEngine>, u32>>::const_iterator It =
+    m_address_to_function.find(address);
+  if (It != m_address_to_function.end())
+    return &(std::get<0>(It->second));
   m_address_to_function[address] = std::make_tuple(default_executable, nullptr, 1);
   return &(std::get<0>(m_address_to_function[address]));
 }
@@ -311,12 +312,13 @@ const Executable *RecompilationEngine::GetExecutable(u32 address, Executable def
 const Executable *RecompilationEngine::GetCompiledExecutableIfAvailable(u32 address)
 {
   std::lock_guard<std::mutex> lock(m_address_to_function_lock);
-  auto i = m_address_to_function.find(address);
-  if (i == m_address_to_function.end())
+  std::unordered_map<u32, std::tuple<Executable, std::unique_ptr<llvm::ExecutionEngine>, u32>>::const_iterator It =
+    m_address_to_function.find(address);
+  if (It == m_address_to_function.end())
     return nullptr;
-  if(std::get<1>(i->second) == nullptr)
+  if(std::get<1>(It->second) == nullptr)
     return nullptr;
-  return &(std::get<0>(i->second));
+  return &(std::get<0>(It->second));
 }
 
 void RecompilationEngine::RemoveUnusedEntriesFromCache() {
