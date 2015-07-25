@@ -16,6 +16,7 @@ private:
 	wxCmdLineParser parser;
 	// Used to restore the configuration state after a test run
 	bool HLEExitOnStop;
+	bool HLESaveTTY;
 public:
 	MainFrame* m_MainFrame;
 

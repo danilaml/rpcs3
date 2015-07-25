@@ -171,7 +171,9 @@ void Rpcs3App::OnArguments(const wxCmdLineParser& parser)
 	if (parser.FoundSwitch("t"))
 	{
 		HLEExitOnStop = Ini.HLEExitOnStop.GetValue();
+		HLESaveTTY = Ini.HLESaveTTY.GetValue();
 		Ini.HLEExitOnStop.SetValue(true);
+		Ini.HLESaveTTY.SetValue(true);
 		if (parser.GetParamCount() != 1)
 		{
 			wxLogDebug(wxT("A (S)ELF file needs to be given in test mode, exiting."));
@@ -192,6 +194,7 @@ void Rpcs3App::Exit()
 	if (parser.FoundSwitch("t"))
 	{
 		Ini.HLEExitOnStop.SetValue(HLEExitOnStop);
+		Ini.HLESaveTTY.SetValue(HLESaveTTY);
 	}
 
 	Emu.Stop();
