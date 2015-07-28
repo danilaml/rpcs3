@@ -31,11 +31,12 @@ before_install:
 # Add later version of Clang, apt from llvm.org. the repository link is for development version.
   - echo "yes" | sudo add-apt-repository 'deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu precise main'
   - echo "yes" | sudo add-apt-repository 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise-3.6 main'
+  - echo "yes" | sudo add-apt-repository 'deb http://llvm.org/apt/precise/ llvm-toolchain-snapshot main'
   - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -;
 # And the libstdc++4.9 of GCC from ppa
   - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   - sudo apt-get update
-  - sudo apt-get install libwxgtk3.0-dev libopenal-dev freeglut3-dev libglew-dev libc6-dev llvm-3.6 llvm-3.6-dev libedit-dev
+  - sudo apt-get install libwxgtk3.0-dev libopenal-dev freeglut3-dev libglew-dev libc6-dev llvm-3.7 llvm-3.7-dev libedit-dev
   - sudo apt-get install aria2 -qq
   - download_extract() { aria2c -x 16 $1 -o $2 && tar -xf $2; }
   - if [ "$CXX" = "g++" ]; then
