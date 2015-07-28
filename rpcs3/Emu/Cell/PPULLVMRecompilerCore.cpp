@@ -26,6 +26,11 @@
 using namespace llvm;
 using namespace ppu_recompiler_llvm;
 
+//ugly hacks because i'm lazy
+#define CreateCall2(x,y,z) CreateCall(x, {y,z})
+#define CreateCall3(x,y,z,a) CreateCall(x, {y,z,a})
+#define CreateCall5(x,y,z,a,b,c) CreateCall(x, {y,z,a,b,c}) 
+
 void Compiler::NULL_OP() {
 	CompilationError("NULL_OP");
 }
@@ -522,14 +527,14 @@ void Compiler::VMADDFP(u32 vd, u32 va, u32 vc, u32 vb) {
 void Compiler::VMAXFP(u32 vd, u32 va, u32 vb) {
 	auto va_v4f32 = GetVrAsFloatVec(va);
 	auto vb_v4f32 = GetVrAsFloatVec(vb);
-	auto res_v4f32 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse_max_ps), va_v4f32, vb_v4f32);
+	auto res_v4f32 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse_max_ps),{ va_v4f32, vb_v4f32});
 	SetVr(vd, res_v4f32);
 }
 
 void Compiler::VMAXSB(u32 vd, u32 va, u32 vb) {
 	auto va_v16i8 = GetVrAsIntVec(va, 8);
 	auto vb_v16i8 = GetVrAsIntVec(vb, 8);
-	auto res_v16i8 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pmaxsb), va_v16i8, vb_v16i8);
+	auto res_v16i8 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pmaxsb),{ va_v16i8, vb_v16i8});
 	SetVr(vd, res_v16i8);
 }
 
@@ -5314,4 +5319,7 @@ void Compiler::InitRotateMask() {
 		}
 	}
 }
+#undef CreateCall2
+#undef CreateCall3
+#undef CreateCall5
 #endif

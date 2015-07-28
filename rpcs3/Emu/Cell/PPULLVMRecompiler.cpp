@@ -81,12 +81,12 @@ std::pair<Executable, llvm::ExecutionEngine *> Compiler::Compile(const std::stri
 		.setOptLevel(llvm::CodeGenOpt::Aggressive)
 		.setMCPU("nehalem")
 		.create();
-	m_module->setDataLayout(execution_engine->getDataLayout());
+	m_module->setDataLayout(*execution_engine->getDataLayout());
 
-	llvm::FunctionPassManager *fpm = new llvm::FunctionPassManager(m_module);
+	llvm::legacy::FunctionPassManager *fpm = new llvm::legacy::FunctionPassManager(m_module);
 	fpm->add(createNoAAPass());
 	fpm->add(createBasicAliasAnalysisPass());
-	fpm->add(createNoTargetTransformInfoPass());
+	//fpm->add(createNoTargetTransformInfoPass());
 	fpm->add(createEarlyCSEPass());
 	fpm->add(createTailCallEliminationPass());
 	fpm->add(createReassociatePass());
@@ -97,7 +97,7 @@ std::pair<Executable, llvm::ExecutionEngine *> Compiler::Compile(const std::stri
 	fpm->add(createInstructionCombiningPass());
 	fpm->add(new MemoryDependenceAnalysis());
 	fpm->add(createDeadStoreEliminationPass());
-	fpm->add(new LoopInfo());
+	//fpm->add(new LoopInfo());
 	fpm->add(new ScalarEvolution());
 	fpm->add(createSLPVectorizerPass());
 	fpm->add(createInstructionCombiningPass());
@@ -163,7 +163,7 @@ std::pair<Executable, llvm::ExecutionEngine *> Compiler::Compile(const std::stri
 			m_ir_builder->SetInsertPoint(then_bb);
 			context_i64 = m_ir_builder->CreateZExt(ret_i32, m_ir_builder->getInt64Ty());
 			context_i64 = m_ir_builder->CreateOr(context_i64, (u64)cfg.function_address << 32);
-			m_ir_builder->CreateCall2(m_execute_unknown_block, m_state.args[CompileTaskState::Args::State], context_i64);
+			m_ir_builder->CreateCall(m_execute_unknown_block, { m_state.args[CompileTaskState::Args::State], context_i64 });
 			m_ir_builder->CreateBr(merge_bb);
 
 			m_ir_builder->SetInsertPoint(merge_bb);
@@ -190,7 +190,7 @@ std::pair<Executable, llvm::ExecutionEngine *> Compiler::Compile(const std::stri
 			m_ir_builder->SetInsertPoint(then_bb);
 			Value *context_i64 = m_ir_builder->CreateZExt(exit_instr_i32, m_ir_builder->getInt64Ty());
 			context_i64 = m_ir_builder->CreateOr(context_i64, (u64)cfg.function_address << 32);
-			m_ir_builder->CreateCall2(m_execute_unknown_block, m_state.args[CompileTaskState::Args::State], context_i64);
+			m_ir_builder->CreateCall(m_execute_unknown_block, { m_state.args[CompileTaskState::Args::State], context_i64 });
 			m_ir_builder->CreateBr(merge_bb);
 
 			m_ir_builder->SetInsertPoint(merge_bb);
