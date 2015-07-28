@@ -31,7 +31,7 @@ before_install:
 # Add later version of Clang, apt from llvm.org. the repository link is for development version.
   - echo "yes" | sudo add-apt-repository 'deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu precise main'
   - echo "yes" | sudo add-apt-repository 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise-3.6 main'
-  - echo "yes" | sudo add-apt-repository 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise-snapshot main'
+#  - echo "yes" | sudo add-apt-repository 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise-snapshot main'
   - echo "yes" | sudo add-apt-repository 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise main'
   - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -;
 # And the libstdc++4.9 of GCC from ppa
