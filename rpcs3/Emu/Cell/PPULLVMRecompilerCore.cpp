@@ -527,7 +527,7 @@ void Compiler::VMADDFP(u32 vd, u32 va, u32 vc, u32 vb) {
 void Compiler::VMAXFP(u32 vd, u32 va, u32 vb) {
 	auto va_v4f32 = GetVrAsFloatVec(va);
 	auto vb_v4f32 = GetVrAsFloatVec(vb);
-	auto res_v4f32 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse_max_ps),{ va_v4f32, vb_v4f32});
+	auto res_v4f32 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse_max_ps), {va_v4f32, vb_v4f32});
 	SetVr(vd, res_v4f32);
 }
 
