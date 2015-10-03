@@ -81,7 +81,7 @@ void Compiler::VADDFP(u32 vd, u32 va, u32 vb) {
 void Compiler::VADDSBS(u32 vd, u32 va, u32 vb) {
 	auto va_v16i8 = GetVrAsIntVec(va, 8);
 	auto vb_v16i8 = GetVrAsIntVec(vb, 8);
-	auto sum_v16i8 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_padds_b), va_v16i8, vb_v16i8);
+	auto sum_v16i8 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_padds_b), { va_v16i8, vb_v16i8 });
 	SetVr(vd, sum_v16i8);
 
 	// TODO: Set VSCR.SAT
@@ -90,7 +90,7 @@ void Compiler::VADDSBS(u32 vd, u32 va, u32 vb) {
 void Compiler::VADDSHS(u32 vd, u32 va, u32 vb) {
 	auto va_v8i16 = GetVrAsIntVec(va, 16);
 	auto vb_v8i16 = GetVrAsIntVec(vb, 16);
-	auto sum_v8i16 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_padds_w), va_v8i16, vb_v8i16);
+	auto sum_v8i16 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_padds_w), { va_v8i16, vb_v8i16 });
 	SetVr(vd, sum_v8i16);
 
 	// TODO: Set VSCR.SAT
@@ -131,7 +131,7 @@ void Compiler::VADDSWS(u32 vd, u32 va, u32 vb) {
 	auto tmp3_v16i8 = m_ir_builder->CreateBitCast(tmp3_v4i32, VectorType::get(m_ir_builder->getInt8Ty(), 16));
 
 	// tmp4 is equal to 0xFFFFFFFF if an overflow occured and 0x00000000 otherwise.
-	auto res_v16i8 = m_ir_builder->CreateCall3(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pblendvb), sum_v16i8, tmp1_v16i8, tmp3_v16i8);
+	auto res_v16i8 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pblendvb), { sum_v16i8, tmp1_v16i8, tmp3_v16i8 });
 	SetVr(vd, res_v16i8);
 
 	// TODO: Set SAT
@@ -147,7 +147,7 @@ void Compiler::VADDUBM(u32 vd, u32 va, u32 vb) {
 void Compiler::VADDUBS(u32 vd, u32 va, u32 vb) {
 	auto va_v16i8 = GetVrAsIntVec(va, 8);
 	auto vb_v16i8 = GetVrAsIntVec(vb, 8);
-	auto sum_v16i8 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_paddus_b), va_v16i8, vb_v16i8);
+	auto sum_v16i8 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_paddus_b), { va_v16i8, vb_v16i8 });
 	SetVr(vd, sum_v16i8);
 
 	// TODO: Set SAT
@@ -163,7 +163,7 @@ void Compiler::VADDUHM(u32 vd, u32 va, u32 vb) {
 void Compiler::VADDUHS(u32 vd, u32 va, u32 vb) {
 	auto va_v8i16 = GetVrAsIntVec(va, 16);
 	auto vb_v8i16 = GetVrAsIntVec(vb, 16);
-	auto sum_v8i16 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_paddus_w), va_v8i16, vb_v8i16);
+	auto sum_v8i16 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_paddus_w), { va_v8i16, vb_v8i16 });
 	SetVr(vd, sum_v8i16);
 
 	// TODO: Set SAT
@@ -242,14 +242,14 @@ void Compiler::VAVGSW(u32 vd, u32 va, u32 vb) {
 void Compiler::VAVGUB(u32 vd, u32 va, u32 vb) {
 	auto va_v16i8 = GetVrAsIntVec(va, 8);
 	auto vb_v16i8 = GetVrAsIntVec(vb, 8);
-	auto avg_v16i8 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_pavg_b), va_v16i8, vb_v16i8);
+	auto avg_v16i8 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_pavg_b), { va_v16i8, vb_v16i8 });
 	SetVr(vd, avg_v16i8);
 }
 
 void Compiler::VAVGUH(u32 vd, u32 va, u32 vb) {
 	auto va_v8i16 = GetVrAsIntVec(va, 16);
 	auto vb_v8i16 = GetVrAsIntVec(vb, 16);
-	auto avg_v8i16 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_pavg_w), va_v8i16, vb_v8i16);
+	auto avg_v8i16 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_pavg_w), { va_v8i16, vb_v8i16 });
 	SetVr(vd, avg_v8i16);
 }
 
@@ -494,7 +494,7 @@ void Compiler::VCTUXS(u32 vd, u32 uimm5, u32 vb) {
 		vb_v4f32 = m_ir_builder->CreateFMul(vb_v4f32, m_ir_builder->CreateVectorSplat(4, ConstantFP::get(m_ir_builder->getFloatTy(), 1 << uimm5)));
 	}
 
-	auto res_v4f32 = (Value *)m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse_max_ps), vb_v4f32, m_ir_builder->CreateVectorSplat(4, ConstantFP::get(m_ir_builder->getFloatTy(), 0)));
+	auto res_v4f32 = (Value *)m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse_max_ps), { vb_v4f32, m_ir_builder->CreateVectorSplat(4, ConstantFP::get(m_ir_builder->getFloatTy(), 0)) });
 	auto cmp_v4i1 = m_ir_builder->CreateFCmpOGE(res_v4f32, m_ir_builder->CreateVectorSplat(4, ConstantFP::get(m_ir_builder->getFloatTy(), 0xFFFFFFFFu)));
 	auto cmp_v4i32 = m_ir_builder->CreateSExt(cmp_v4i1, VectorType::get(m_ir_builder->getInt32Ty(), 4));
 	auto res_v4i32 = m_ir_builder->CreateFPToUI(res_v4f32, VectorType::get(m_ir_builder->getInt32Ty(), 4));
@@ -506,8 +506,8 @@ void Compiler::VCTUXS(u32 vd, u32 uimm5, u32 vb) {
 
 void Compiler::VEXPTEFP(u32 vd, u32 vb) {
 	auto vb_v4f32 = GetVrAsFloatVec(vb);
-	auto res_v4f32 = (Value *)m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::pow, VectorType::get(m_ir_builder->getFloatTy(), 4)),
-		m_ir_builder->CreateVectorSplat(4, ConstantFP::get(m_ir_builder->getFloatTy(), 2.0f)), vb_v4f32);
+	auto res_v4f32 = (Value *)m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::pow, VectorType::get(m_ir_builder->getFloatTy(), 4)),
+		{ m_ir_builder->CreateVectorSplat(4, ConstantFP::get(m_ir_builder->getFloatTy(), 2.0f)), vb_v4f32 });
 	SetVr(vd, res_v4f32);
 }
 
@@ -521,56 +521,56 @@ void Compiler::VMADDFP(u32 vd, u32 va, u32 vc, u32 vb) {
 	auto va_v4f32 = GetVrAsFloatVec(va);
 	auto vb_v4f32 = GetVrAsFloatVec(vb);
 	auto vc_v4f32 = GetVrAsFloatVec(vc);
-	auto res_v4f32 = m_ir_builder->CreateCall3(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, VectorType::get(m_ir_builder->getFloatTy(), 4)), va_v4f32, vc_v4f32, vb_v4f32);
+	auto res_v4f32 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, VectorType::get(m_ir_builder->getFloatTy(), 4)), { va_v4f32, vc_v4f32, vb_v4f32 });
 	SetVr(vd, res_v4f32);
 }
 
 void Compiler::VMAXFP(u32 vd, u32 va, u32 vb) {
 	auto va_v4f32 = GetVrAsFloatVec(va);
 	auto vb_v4f32 = GetVrAsFloatVec(vb);
-	auto res_v4f32 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse_max_ps), va_v4f32, vb_v4f32);
+	auto res_v4f32 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse_max_ps), { va_v4f32, vb_v4f32 });
 	SetVr(vd, res_v4f32);
 }
 
 void Compiler::VMAXSB(u32 vd, u32 va, u32 vb) {
 	auto va_v16i8 = GetVrAsIntVec(va, 8);
 	auto vb_v16i8 = GetVrAsIntVec(vb, 8);
-	auto res_v16i8 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pmaxsb), va_v16i8, vb_v16i8);
+	auto res_v16i8 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pmaxsb), { va_v16i8, vb_v16i8 });
 	SetVr(vd, res_v16i8);
 }
 
 void Compiler::VMAXSH(u32 vd, u32 va, u32 vb) {
 	auto va_v8i16 = GetVrAsIntVec(va, 16);
 	auto vb_v8i16 = GetVrAsIntVec(vb, 16);
-	auto res_v8i16 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_pmaxs_w), va_v8i16, vb_v8i16);
+	auto res_v8i16 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_pmaxs_w), { va_v8i16, vb_v8i16 });
 	SetVr(vd, res_v8i16);
 }
 
 void Compiler::VMAXSW(u32 vd, u32 va, u32 vb) {
 	auto va_v4i32 = GetVrAsIntVec(va, 32);
 	auto vb_v4i32 = GetVrAsIntVec(vb, 32);
-	auto res_v4i32 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pmaxsd), va_v4i32, vb_v4i32);
+	auto res_v4i32 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pmaxsd), { va_v4i32, vb_v4i32 });
 	SetVr(vd, res_v4i32);
 }
 
 void Compiler::VMAXUB(u32 vd, u32 va, u32 vb) {
 	auto va_v16i8 = GetVrAsIntVec(va, 8);
 	auto vb_v16i8 = GetVrAsIntVec(vb, 8);
-	auto res_v16i8 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_pmaxu_b), va_v16i8, vb_v16i8);
+	auto res_v16i8 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_pmaxu_b), { va_v16i8, vb_v16i8 });
 	SetVr(vd, res_v16i8);
 }
 
 void Compiler::VMAXUH(u32 vd, u32 va, u32 vb) {
 	auto va_v8i16 = GetVrAsIntVec(va, 16);
 	auto vb_v8i16 = GetVrAsIntVec(vb, 16);
-	auto res_v8i16 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pmaxuw), va_v8i16, vb_v8i16);
+	auto res_v8i16 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pmaxuw), { va_v8i16, vb_v8i16 });
 	SetVr(vd, res_v8i16);
 }
 
 void Compiler::VMAXUW(u32 vd, u32 va, u32 vb) {
 	auto va_v4i32 = GetVrAsIntVec(va, 32);
 	auto vb_v4i32 = GetVrAsIntVec(vb, 32);
-	auto res_v4i32 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pmaxud), va_v4i32, vb_v4i32);
+	auto res_v4i32 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pmaxud), { va_v4i32, vb_v4i32 });
 	SetVr(vd, res_v4i32);
 }
 
@@ -589,7 +589,7 @@ void Compiler::VMHADDSHS(u32 vd, u32 va, u32 vb, u32 vc) {
 	auto res1_v4i32 = m_ir_builder->CreateShuffleVector(res_v8i32, UndefValue::get(VectorType::get(m_ir_builder->getInt32Ty(), 8)), ConstantDataVector::get(m_ir_builder->getContext(), mask1_v4i32));
 	u32 mask2_v4i32[4] = { 4, 5, 6, 7 };
 	auto res2_v4i32 = m_ir_builder->CreateShuffleVector(res_v8i32, UndefValue::get(VectorType::get(m_ir_builder->getInt32Ty(), 8)), ConstantDataVector::get(m_ir_builder->getContext(), mask2_v4i32));
-	auto res_v8i16 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_packssdw_128), res1_v4i32, res2_v4i32);
+	auto res_v8i16 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_packssdw_128), { res1_v4i32, res2_v4i32 });
 	SetVr(vd, res_v8i16);
 
 	// TODO: Set VSCR.SAT
@@ -611,7 +611,7 @@ void Compiler::VMHRADDSHS(u32 vd, u32 va, u32 vb, u32 vc) {
 	auto res1_v4i32 = m_ir_builder->CreateShuffleVector(res_v8i32, UndefValue::get(VectorType::get(m_ir_builder->getInt32Ty(), 8)), ConstantDataVector::get(m_ir_builder->getContext(), mask1_v4i32));
 	u32 mask2_v4i32[4] = { 4, 5, 6, 7 };
 	auto res2_v4i32 = m_ir_builder->CreateShuffleVector(res_v8i32, UndefValue::get(VectorType::get(m_ir_builder->getInt32Ty(), 8)), ConstantDataVector::get(m_ir_builder->getContext(), mask2_v4i32));
-	auto res_v8i16 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_packssdw_128), res1_v4i32, res2_v4i32);
+	auto res_v8i16 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_packssdw_128), { res1_v4i32, res2_v4i32 });
 	SetVr(vd, res_v8i16);
 
 	// TODO: Set VSCR.SAT
@@ -620,49 +620,49 @@ void Compiler::VMHRADDSHS(u32 vd, u32 va, u32 vb, u32 vc) {
 void Compiler::VMINFP(u32 vd, u32 va, u32 vb) {
 	auto va_v4f32 = GetVrAsFloatVec(va);
 	auto vb_v4f32 = GetVrAsFloatVec(vb);
-	auto res_v4f32 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse_min_ps), va_v4f32, vb_v4f32);
+	auto res_v4f32 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse_min_ps), { va_v4f32, vb_v4f32 });
 	SetVr(vd, res_v4f32);
 }
 
 void Compiler::VMINSB(u32 vd, u32 va, u32 vb) {
 	auto va_v16i8 = GetVrAsIntVec(va, 8);
 	auto vb_v16i8 = GetVrAsIntVec(vb, 8);
-	auto res_v16i8 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pminsb), va_v16i8, vb_v16i8);
+	auto res_v16i8 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pminsb), { va_v16i8, vb_v16i8 });
 	SetVr(vd, res_v16i8);
 }
 
 void Compiler::VMINSH(u32 vd, u32 va, u32 vb) {
 	auto va_v8i16 = GetVrAsIntVec(va, 16);
 	auto vb_v8i16 = GetVrAsIntVec(vb, 16);
-	auto res_v8i16 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_pmins_w), va_v8i16, vb_v8i16);
+	auto res_v8i16 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_pmins_w), { va_v8i16, vb_v8i16 });
 	SetVr(vd, res_v8i16);
 }
 
 void Compiler::VMINSW(u32 vd, u32 va, u32 vb) {
 	auto va_v4i32 = GetVrAsIntVec(va, 32);
 	auto vb_v4i32 = GetVrAsIntVec(vb, 32);
-	auto res_v4i32 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pminsd), va_v4i32, vb_v4i32);
+	auto res_v4i32 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pminsd), { va_v4i32, vb_v4i32 });
 	SetVr(vd, res_v4i32);
 }
 
 void Compiler::VMINUB(u32 vd, u32 va, u32 vb) {
 	auto va_v16i8 = GetVrAsIntVec(va, 8);
 	auto vb_v16i8 = GetVrAsIntVec(vb, 8);
-	auto res_v16i8 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_pminu_b), va_v16i8, vb_v16i8);
+	auto res_v16i8 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_pminu_b), { va_v16i8, vb_v16i8 });
 	SetVr(vd, res_v16i8);
 }
 
 void Compiler::VMINUH(u32 vd, u32 va, u32 vb) {
 	auto va_v8i16 = GetVrAsIntVec(va, 16);
 	auto vb_v8i16 = GetVrAsIntVec(vb, 16);
-	auto res_v8i16 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pminuw), va_v8i16, vb_v8i16);
+	auto res_v8i16 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pminuw), { va_v8i16, vb_v8i16 });
 	SetVr(vd, res_v8i16);
 }
 
 void Compiler::VMINUW(u32 vd, u32 va, u32 vb) {
 	auto va_v4i32 = GetVrAsIntVec(va, 32);
 	auto vb_v4i32 = GetVrAsIntVec(vb, 32);
-	auto res_v4i32 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pminud), va_v4i32, vb_v4i32);
+	auto res_v4i32 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pminud), { va_v4i32, vb_v4i32 });
 	SetVr(vd, res_v4i32);
 }
 
@@ -759,7 +759,7 @@ void Compiler::VMSUMSHM(u32 vd, u32 va, u32 vb, u32 vc) {
 	auto va_v8i16 = GetVrAsIntVec(va, 16);
 	auto vb_v8i16 = GetVrAsIntVec(vb, 16);
 	auto vc_v4i32 = GetVrAsIntVec(vc, 32);
-	auto res_v4i32 = (Value *)m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_pmadd_wd), va_v8i16, vb_v8i16);
+	auto res_v4i32 = (Value *)m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_pmadd_wd), { va_v8i16, vb_v8i16 });
 	res_v4i32 = m_ir_builder->CreateAdd(res_v4i32, vc_v4i32);
 	SetVr(vd, res_v4i32);
 }
@@ -768,7 +768,7 @@ void Compiler::VMSUMSHS(u32 vd, u32 va, u32 vb, u32 vc) {
 	auto va_v8i16 = GetVrAsIntVec(va, 16);
 	auto vb_v8i16 = GetVrAsIntVec(vb, 16);
 	auto vc_v4i32 = GetVrAsIntVec(vc, 32);
-	auto res_v4i32 = (Value *)m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_pmadd_wd), va_v8i16, vb_v8i16);
+	auto res_v4i32 = (Value *)m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_pmadd_wd), { va_v8i16, vb_v8i16 });
 
 	auto tmp1_v4i32 = m_ir_builder->CreateLShr(vc_v4i32, 31);
 	tmp1_v4i32 = m_ir_builder->CreateAdd(tmp1_v4i32, m_ir_builder->CreateVectorSplat(4, m_ir_builder->getInt32(0x7FFFFFFF)));
@@ -781,7 +781,7 @@ void Compiler::VMSUMSHS(u32 vd, u32 va, u32 vb, u32 vc) {
 	tmp3_v4i32 = m_ir_builder->CreateAnd(tmp2_v4i32, tmp3_v4i32);
 	tmp3_v4i32 = m_ir_builder->CreateAShr(tmp3_v4i32, 31);
 	auto tmp3_v16i8 = m_ir_builder->CreateBitCast(tmp3_v4i32, VectorType::get(m_ir_builder->getInt8Ty(), 16));
-	auto res_v16i8 = m_ir_builder->CreateCall3(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pblendvb), sum_v16i8, tmp1_v16i8, tmp3_v16i8);
+	auto res_v16i8 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pblendvb), { sum_v16i8, tmp1_v16i8, tmp3_v16i8 });
 	SetVr(vd, res_v16i8);
 
 	// TODO: Set VSCR.SAT
@@ -952,7 +952,7 @@ void Compiler::VNMSUBFP(u32 vd, u32 va, u32 vc, u32 vb) {
 	auto vb_v4f32 = GetVrAsFloatVec(vb);
 	auto vc_v4f32 = GetVrAsFloatVec(vc);
 	vc_v4f32 = m_ir_builder->CreateFNeg(vc_v4f32);
-	auto res_v4f32 = (Value *)m_ir_builder->CreateCall3(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, VectorType::get(m_ir_builder->getFloatTy(), 4)), va_v4f32, vc_v4f32, vb_v4f32);
+	auto res_v4f32 = (Value *)m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, VectorType::get(m_ir_builder->getFloatTy(), 4)), { va_v4f32, vc_v4f32, vb_v4f32 });
 	SetVr(vd, res_v4f32);
 }
 
@@ -981,13 +981,13 @@ void Compiler::VPERM(u32 vd, u32 va, u32 vb, u32 vc) {
 
 	auto fifteen_v16i8 = m_ir_builder->CreateVectorSplat(16, m_ir_builder->getInt8(15));
 	auto vc_le15_v16i8 = m_ir_builder->CreateSub(fifteen_v16i8, vc_v16i8);
-	auto res_va_v16i8 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_ssse3_pshuf_b_128), va_v16i8, vc_le15_v16i8);
+	auto res_va_v16i8 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_ssse3_pshuf_b_128), { va_v16i8, vc_le15_v16i8 });
 
 	auto vc_gt15_v16i8 = m_ir_builder->CreateSub(thrity_one_v16i8, vc_v16i8);
 	auto cmp_i1 = m_ir_builder->CreateICmpUGT(vc_gt15_v16i8, fifteen_v16i8);
 	auto cmp_i8 = m_ir_builder->CreateSExt(cmp_i1, VectorType::get(m_ir_builder->getInt8Ty(), 16));
 	vc_gt15_v16i8 = m_ir_builder->CreateOr(cmp_i8, vc_gt15_v16i8);
-	auto res_vb_v16i8 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_ssse3_pshuf_b_128), vb_v16i8, vc_gt15_v16i8);
+	auto res_vb_v16i8 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_ssse3_pshuf_b_128), { vb_v16i8, vc_gt15_v16i8 });
 
 	auto res_v16i8 = m_ir_builder->CreateOr(res_vb_v16i8, res_va_v16i8);
 	SetVr(vd, res_v16i8);
@@ -1030,7 +1030,7 @@ void Compiler::VPKPX(u32 vd, u32 va, u32 vb) {
 void Compiler::VPKSHSS(u32 vd, u32 va, u32 vb) {
 	auto va_v8i16 = GetVrAsIntVec(va, 16);
 	auto vb_v8i16 = GetVrAsIntVec(vb, 16);
-	auto res_v16i8 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_packsswb_128), vb_v8i16, va_v8i16);
+	auto res_v16i8 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_packsswb_128), { vb_v8i16, va_v8i16 });
 	SetVr(vd, res_v16i8);
 
 	// TODO: VSCR.SAT
@@ -1039,7 +1039,7 @@ void Compiler::VPKSHSS(u32 vd, u32 va, u32 vb) {
 void Compiler::VPKSHUS(u32 vd, u32 va, u32 vb) {
 	auto va_v8i16 = GetVrAsIntVec(va, 16);
 	auto vb_v8i16 = GetVrAsIntVec(vb, 16);
-	auto res_v16i8 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_packuswb_128), vb_v8i16, va_v8i16);
+	auto res_v16i8 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_packuswb_128), { vb_v8i16, va_v8i16 });
 	SetVr(vd, res_v16i8);
 
 	// TODO: VSCR.SAT
@@ -1048,7 +1048,7 @@ void Compiler::VPKSHUS(u32 vd, u32 va, u32 vb) {
 void Compiler::VPKSWSS(u32 vd, u32 va, u32 vb) {
 	auto va_v4i32 = GetVrAsIntVec(va, 32);
 	auto vb_v4i32 = GetVrAsIntVec(vb, 32);
-	auto res_v8i16 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_packssdw_128), vb_v4i32, va_v4i32);
+	auto res_v8i16 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_packssdw_128), { vb_v4i32, va_v4i32 });
 	SetVr(vd, res_v8i16);
 
 	// TODO: VSCR.SAT
@@ -1057,7 +1057,7 @@ void Compiler::VPKSWSS(u32 vd, u32 va, u32 vb) {
 void Compiler::VPKSWUS(u32 vd, u32 va, u32 vb) {
 	auto va_v4i32 = GetVrAsIntVec(va, 32);
 	auto vb_v4i32 = GetVrAsIntVec(vb, 32);
-	auto res_v8i16 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_packusdw), vb_v4i32, va_v4i32);
+	auto res_v8i16 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_packusdw), { vb_v4i32, va_v4i32 });
 	SetVr(vd, res_v8i16);
 
 	// TODO: VSCR.SAT
@@ -1075,8 +1075,8 @@ void Compiler::VPKUHUM(u32 vd, u32 va, u32 vb) {
 void Compiler::VPKUHUS(u32 vd, u32 va, u32 vb) {
 	auto va_v8i16 = GetVrAsIntVec(va, 16);
 	auto vb_v8i16 = GetVrAsIntVec(vb, 16);
-	va_v8i16 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pminuw), va_v8i16, m_ir_builder->CreateVectorSplat(8, m_ir_builder->getInt16(0xFF)));
-	vb_v8i16 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pminuw), vb_v8i16, m_ir_builder->CreateVectorSplat(8, m_ir_builder->getInt16(0xFF)));
+	va_v8i16 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pminuw), { va_v8i16, m_ir_builder->CreateVectorSplat(8, m_ir_builder->getInt16(0xFF)) });
+	vb_v8i16 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pminuw), { vb_v8i16, m_ir_builder->CreateVectorSplat(8, m_ir_builder->getInt16(0xFF)) });
 	auto va_v16i8 = m_ir_builder->CreateBitCast(va_v8i16, VectorType::get(m_ir_builder->getInt8Ty(), 16));
 	auto vb_v16i8 = m_ir_builder->CreateBitCast(vb_v8i16, VectorType::get(m_ir_builder->getInt8Ty(), 16));
 
@@ -1099,8 +1099,8 @@ void Compiler::VPKUWUM(u32 vd, u32 va, u32 vb) {
 void Compiler::VPKUWUS(u32 vd, u32 va, u32 vb) {
 	auto va_v4i32 = GetVrAsIntVec(va, 32);
 	auto vb_v4i32 = GetVrAsIntVec(vb, 32);
-	va_v4i32 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pminud), va_v4i32, m_ir_builder->CreateVectorSplat(4, m_ir_builder->getInt32(0xFFFF)));
-	vb_v4i32 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pminud), vb_v4i32, m_ir_builder->CreateVectorSplat(4, m_ir_builder->getInt32(0xFFFF)));
+	va_v4i32 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pminud), { va_v4i32, m_ir_builder->CreateVectorSplat(4, m_ir_builder->getInt32(0xFFFF)) });
+	vb_v4i32 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pminud), { vb_v4i32, m_ir_builder->CreateVectorSplat(4, m_ir_builder->getInt32(0xFFFF)) });
 	auto va_v8i16 = m_ir_builder->CreateBitCast(va_v4i32, VectorType::get(m_ir_builder->getInt16Ty(), 8));
 	auto vb_v8i16 = m_ir_builder->CreateBitCast(vb_v4i32, VectorType::get(m_ir_builder->getInt16Ty(), 8));
 
@@ -1371,7 +1371,7 @@ void Compiler::VSUBFP(u32 vd, u32 va, u32 vb) {
 void Compiler::VSUBSBS(u32 vd, u32 va, u32 vb) {
 	auto va_v16i8 = GetVrAsIntVec(va, 8);
 	auto vb_v16i8 = GetVrAsIntVec(vb, 8);
-	auto diff_v16i8 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_psubs_b), va_v16i8, vb_v16i8);
+	auto diff_v16i8 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_psubs_b), { va_v16i8, vb_v16i8 });
 	SetVr(vd, diff_v16i8);
 
 	// TODO: Set VSCR.SAT
@@ -1380,7 +1380,7 @@ void Compiler::VSUBSBS(u32 vd, u32 va, u32 vb) {
 void Compiler::VSUBSHS(u32 vd, u32 va, u32 vb) {
 	auto va_v8i16 = GetVrAsIntVec(va, 16);
 	auto vb_v8i16 = GetVrAsIntVec(vb, 16);
-	auto diff_v8i16 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_psubs_w), va_v8i16, vb_v8i16);
+	auto diff_v8i16 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_psubs_w), { va_v8i16, vb_v8i16 });
 	SetVr(vd, diff_v8i16);
 
 	// TODO: Set VSCR.SAT
@@ -1411,7 +1411,7 @@ void Compiler::VSUBSWS(u32 vd, u32 va, u32 vb) {
 	auto tmp3_v16i8 = m_ir_builder->CreateBitCast(tmp3_v4i32, VectorType::get(m_ir_builder->getInt8Ty(), 16));
 
 	// tmp4 is equal to 0xFFFFFFFF if an overflow occured and 0x00000000 otherwise.
-	auto res_v16i8 = m_ir_builder->CreateCall3(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pblendvb), diff_v16i8, tmp1_v16i8, tmp3_v16i8);
+	auto res_v16i8 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse41_pblendvb), { diff_v16i8, tmp1_v16i8, tmp3_v16i8 });
 	SetVr(vd, res_v16i8);
 
 	// TODO: Set SAT
@@ -1427,7 +1427,7 @@ void Compiler::VSUBUBM(u32 vd, u32 va, u32 vb) {
 void Compiler::VSUBUBS(u32 vd, u32 va, u32 vb) {
 	auto va_v16i8 = GetVrAsIntVec(va, 8);
 	auto vb_v16i8 = GetVrAsIntVec(vb, 8);
-	auto diff_v16i8 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_psubus_b), va_v16i8, vb_v16i8);
+	auto diff_v16i8 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_psubus_b), {va_v16i8, vb_v16i8});
 	SetVr(vd, diff_v16i8);
 
 	// TODO: Set SAT
@@ -1443,7 +1443,7 @@ void Compiler::VSUBUHM(u32 vd, u32 va, u32 vb) {
 void Compiler::VSUBUHS(u32 vd, u32 va, u32 vb) {
 	auto va_v8i16 = GetVrAsIntVec(va, 16);
 	auto vb_v8i16 = GetVrAsIntVec(vb, 16);
-	auto diff_v8i16 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_psubus_w), va_v8i16, vb_v8i16);
+	auto diff_v8i16 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_sse2_psubus_w), { va_v8i16, vb_v8i16 });
 	SetVr(vd, diff_v8i16);
 
 	// TODO: Set SAT
@@ -1677,7 +1677,7 @@ void Compiler::MULLI(u32 rd, u32 ra, s32 simm16) {
 void Compiler::SUBFIC(u32 rd, u32 ra, s32 simm16) {
 	auto ra_i64 = GetGpr(ra);
 	ra_i64 = m_ir_builder->CreateNeg(ra_i64); // simpler way of doing  ~ra + 1
-	auto res_s = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), ra_i64, m_ir_builder->getInt64((s64)simm16));
+	auto res_s = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), { ra_i64, m_ir_builder->getInt64((s64)simm16) });
 	auto diff_i64 = m_ir_builder->CreateExtractValue(res_s, { 0 });
 	auto carry_i1 = m_ir_builder->CreateExtractValue(res_s, { 1 });
 	auto is_zero = m_ir_builder->CreateICmpEQ(ra_i64, m_ir_builder->getInt64(0)); // if ra is zero when ~ra + 1 = 0 sets overflow bit
@@ -1712,7 +1712,7 @@ void Compiler::CMPI(u32 crfd, u32 l, u32 ra, s32 simm16) {
 
 void Compiler::ADDIC(u32 rd, u32 ra, s32 simm16) {
 	auto ra_i64 = GetGpr(ra);
-	auto res_s = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), m_ir_builder->getInt64((s64)simm16), ra_i64);
+	auto res_s = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), { m_ir_builder->getInt64((s64)simm16), ra_i64 });
 	auto sum_i64 = m_ir_builder->CreateExtractValue(res_s, { 0 });
 	auto carry_i1 = m_ir_builder->CreateExtractValue(res_s, { 1 });
 	SetGpr(rd, sum_i64);
@@ -2182,7 +2182,7 @@ void Compiler::SUBFC(u32 rd, u32 ra, u32 rb, u32 oe, u32 rc) {
 	auto ra_i64 = GetGpr(ra);
 	ra_i64 = m_ir_builder->CreateNeg(ra_i64);
 	auto rb_i64 = GetGpr(rb);
-	auto res_s = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), ra_i64, rb_i64);
+	auto res_s = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), { ra_i64, rb_i64 });
 	auto diff_i64 = m_ir_builder->CreateExtractValue(res_s, { 0 });
 	auto carry_i1 = m_ir_builder->CreateExtractValue(res_s, { 1 });
 	SetGpr(rd, diff_i64);
@@ -2201,7 +2201,7 @@ void Compiler::SUBFC(u32 rd, u32 ra, u32 rb, u32 oe, u32 rc) {
 void Compiler::ADDC(u32 rd, u32 ra, u32 rb, u32 oe, u32 rc) {
 	auto ra_i64 = GetGpr(ra);
 	auto rb_i64 = GetGpr(rb);
-	auto res_s = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), ra_i64, rb_i64);
+	auto res_s = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), { ra_i64, rb_i64 });
 	auto sum_i64 = m_ir_builder->CreateExtractValue(res_s, { 0 });
 	auto carry_i1 = m_ir_builder->CreateExtractValue(res_s, { 1 });
 	SetGpr(rd, sum_i64);
@@ -2309,7 +2309,7 @@ void Compiler::SLW(u32 ra, u32 rs, u32 rb, u32 rc) {
 
 void Compiler::CNTLZW(u32 ra, u32 rs, u32 rc) {
 	auto rs_i32 = GetGpr(rs, 32);
-	auto res_i32 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::ctlz, m_ir_builder->getInt32Ty()), rs_i32, m_ir_builder->getInt1(false));
+	auto res_i32 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::ctlz, m_ir_builder->getInt32Ty()), { rs_i32, m_ir_builder->getInt1(false) });
 	auto res_i64 = m_ir_builder->CreateZExt(res_i32, m_ir_builder->getInt64Ty());
 	SetGpr(ra, res_i64);
 
@@ -2453,7 +2453,7 @@ void Compiler::LWZUX(u32 rd, u32 ra, u32 rb) {
 
 void Compiler::CNTLZD(u32 ra, u32 rs, u32 rc) {
 	auto rs_i64 = GetGpr(rs);
-	auto res_i64 = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::ctlz, m_ir_builder->getInt64Ty()), rs_i64, m_ir_builder->getInt1(false));
+	auto res_i64 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::ctlz, m_ir_builder->getInt64Ty()), { rs_i64, m_ir_builder->getInt1(false) });
 	SetGpr(ra, res_i64);
 
 	if (rc) {
@@ -2625,10 +2625,10 @@ void Compiler::SUBFE(u32 rd, u32 ra, u32 rb, u32 oe, u32 rc) {
 	auto ra_i64 = GetGpr(ra);
 	auto rb_i64 = GetGpr(rb);
 	ra_i64 = m_ir_builder->CreateNot(ra_i64);
-	auto res_s = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), ra_i64, ca_i64);
+	auto res_s = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), {ra_i64, ca_i64 });
 	auto res_i64 = m_ir_builder->CreateExtractValue(res_s, { 0 });
 	auto carry1_i1 = m_ir_builder->CreateExtractValue(res_s, { 1 });
-	res_s = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), res_i64, rb_i64);
+	res_s = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), { res_i64, rb_i64 });
 	res_i64 = m_ir_builder->CreateExtractValue(res_s, { 0 });
 	auto carry2_i1 = m_ir_builder->CreateExtractValue(res_s, { 1 });
 	auto carry_i1 = m_ir_builder->CreateOr(carry1_i1, carry2_i1);
@@ -2649,10 +2649,10 @@ void Compiler::ADDE(u32 rd, u32 ra, u32 rb, u32 oe, u32 rc) {
 	auto ca_i64 = GetXerCa();
 	auto ra_i64 = GetGpr(ra);
 	auto rb_i64 = GetGpr(rb);
-	auto res_s = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), ra_i64, ca_i64);
+	auto res_s = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), { ra_i64, ca_i64 });
 	auto res_i64 = m_ir_builder->CreateExtractValue(res_s, { 0 });
 	auto carry1_i1 = m_ir_builder->CreateExtractValue(res_s, { 1 });
-	res_s = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), res_i64, rb_i64);
+	res_s = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), { res_i64, rb_i64 });
 	res_i64 = m_ir_builder->CreateExtractValue(res_s, { 0 });
 	auto carry2_i1 = m_ir_builder->CreateExtractValue(res_s, { 1 });
 	auto carry_i1 = m_ir_builder->CreateOr(carry1_i1, carry2_i1);
@@ -2782,7 +2782,7 @@ void Compiler::STVEWX(u32 vs, u32 ra, u32 rb) {
 void Compiler::ADDZE(u32 rd, u32 ra, u32 oe, u32 rc) {
 	auto ra_i64 = GetGpr(ra);
 	auto ca_i64 = GetXerCa();
-	auto res_s = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), ra_i64, ca_i64);
+	auto res_s = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), { ra_i64, ca_i64 });
 	auto sum_i64 = m_ir_builder->CreateExtractValue(res_s, { 0 });
 	auto carry_i1 = m_ir_builder->CreateExtractValue(res_s, { 1 });
 	SetGpr(rd, sum_i64);
@@ -2802,7 +2802,7 @@ void Compiler::SUBFZE(u32 rd, u32 ra, u32 oe, u32 rc) {
 	auto ra_i64 = GetGpr(ra);
 	ra_i64 = m_ir_builder->CreateNot(ra_i64);
 	auto ca_i64 = GetXerCa();
-	auto res_s = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), ra_i64, ca_i64);
+	auto res_s = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), { ra_i64, ca_i64 });
 	auto res_i64 = m_ir_builder->CreateExtractValue(res_s, { 0 });
 	auto carry_i1 = m_ir_builder->CreateExtractValue(res_s, { 1 });
 	SetGpr(rd, res_i64);
@@ -2863,10 +2863,10 @@ void Compiler::SUBFME(u32 rd, u32 ra, u32 oe, u32 rc) {
 	auto ca_i64 = GetXerCa();
 	auto ra_i64 = GetGpr(ra);
 	ra_i64 = m_ir_builder->CreateNot(ra_i64);
-	auto res_s = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), ra_i64, ca_i64);
+	auto res_s = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), { ra_i64, ca_i64 });
 	auto res_i64 = m_ir_builder->CreateExtractValue(res_s, { 0 });
 	auto carry1_i1 = m_ir_builder->CreateExtractValue(res_s, { 1 });
-	res_s = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), res_i64, m_ir_builder->getInt64((s64)-1));
+	res_s = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), { res_i64, m_ir_builder->getInt64((s64)-1) });
 	res_i64 = m_ir_builder->CreateExtractValue(res_s, { 0 });
 	auto carry2_i1 = m_ir_builder->CreateExtractValue(res_s, { 1 });
 	auto carry_i1 = m_ir_builder->CreateOr(carry1_i1, carry2_i1);
@@ -2902,10 +2902,10 @@ void Compiler::MULLD(u32 rd, u32 ra, u32 rb, u32 oe, u32 rc) {
 void Compiler::ADDME(u32 rd, u32 ra, u32 oe, u32 rc) {
 	auto ca_i64 = GetXerCa();
 	auto ra_i64 = GetGpr(ra);
-	auto res_s = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), ra_i64, ca_i64);
+	auto res_s = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), { ra_i64, ca_i64 });
 	auto res_i64 = m_ir_builder->CreateExtractValue(res_s, { 0 });
 	auto carry1_i1 = m_ir_builder->CreateExtractValue(res_s, { 1 });
-	res_s = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), res_i64, m_ir_builder->getInt64((s64)-1));
+	res_s = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::uadd_with_overflow, m_ir_builder->getInt64Ty()), { res_i64, m_ir_builder->getInt64((s64)-1) });
 	res_i64 = m_ir_builder->CreateExtractValue(res_s, { 0 });
 	auto carry2_i1 = m_ir_builder->CreateExtractValue(res_s, { 1 });
 	auto carry_i1 = m_ir_builder->CreateOr(carry1_i1, carry2_i1);
@@ -3481,8 +3481,8 @@ void Compiler::STVLX(u32 vs, u32 ra, u32 rb) {
 	auto vs_i8_ptr = m_ir_builder->CreateBitCast(vs_i128_ptr, m_ir_builder->getInt8PtrTy());
 
 	Type * types[3] = { m_ir_builder->getInt8PtrTy(), m_ir_builder->getInt8PtrTy(), m_ir_builder->getInt64Ty() };
-	m_ir_builder->CreateCall5(Intrinsic::getDeclaration(m_module, Intrinsic::memcpy, types),
-		addr_i8_ptr, vs_i8_ptr, size_i64, m_ir_builder->getInt32(1), m_ir_builder->getInt1(false));
+	m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::memcpy, types),
+		{ addr_i8_ptr, vs_i8_ptr, size_i64, m_ir_builder->getInt32(1), m_ir_builder->getInt1(false) });
 }
 
 void Compiler::STDBRX(u32 rs, u32 ra, u32 rb) {
@@ -3542,8 +3542,8 @@ void Compiler::STVRX(u32 vs, u32 ra, u32 rb) {
 	vs_i8_ptr = m_ir_builder->CreateGEP(vs_i8_ptr, index_i64);
 
 	Type * types[3] = { m_ir_builder->getInt8PtrTy(), m_ir_builder->getInt8PtrTy(), m_ir_builder->getInt64Ty() };
-	m_ir_builder->CreateCall5(Intrinsic::getDeclaration(m_module, Intrinsic::memcpy, types),
-		addr_i8_ptr, vs_i8_ptr, size_i64, m_ir_builder->getInt32(1), m_ir_builder->getInt1(false));
+	m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::memcpy, types),
+		{ addr_i8_ptr, vs_i8_ptr, size_i64, m_ir_builder->getInt32(1), m_ir_builder->getInt1(false) });
 }
 
 void Compiler::STFSUX(u32 frs, u32 ra, u32 rb) {
@@ -3806,8 +3806,8 @@ void Compiler::DCBZ(u32 ra, u32 rb) {
 	auto addr_i8_ptr = m_ir_builder->CreateIntToPtr(addr_i64, m_ir_builder->getInt8PtrTy());
 
 	std::vector<Type *> types = { (Type *)m_ir_builder->getInt8PtrTy(), (Type *)m_ir_builder->getInt32Ty() };
-	m_ir_builder->CreateCall5(Intrinsic::getDeclaration(m_module, Intrinsic::memset, types),
-		addr_i8_ptr, m_ir_builder->getInt8(0), m_ir_builder->getInt32(128), m_ir_builder->getInt32(128), m_ir_builder->getInt1(true));
+	m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::memset, types),
+		{ addr_i8_ptr, m_ir_builder->getInt8(0), m_ir_builder->getInt32(128), m_ir_builder->getInt32(128), m_ir_builder->getInt1(true) });
 }
 
 void Compiler::LWZ(u32 rd, u32 ra, s32 d) {
@@ -4194,7 +4194,7 @@ void Compiler::FMADDS(u32 frd, u32 fra, u32 frc, u32 frb, u32 rc) {
 	auto ra_f64 = GetFpr(fra);
 	auto rb_f64 = GetFpr(frb);
 	auto rc_f64 = GetFpr(frc);
-	auto res_f64 = (Value *)m_ir_builder->CreateCall3(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), ra_f64, rc_f64, rb_f64);
+	auto res_f64 = (Value *)m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), { ra_f64, rc_f64, rb_f64 });
 	auto res_f32 = m_ir_builder->CreateFPTrunc(res_f64, m_ir_builder->getFloatTy());
 	SetFpr(frd, res_f32);
 
@@ -4211,7 +4211,7 @@ void Compiler::FMSUBS(u32 frd, u32 fra, u32 frc, u32 frb, u32 rc) {
 	auto rb_f64 = GetFpr(frb);
 	auto rc_f64 = GetFpr(frc);
 	rb_f64 = m_ir_builder->CreateFNeg(rb_f64);
-	auto res_f64 = (Value *)m_ir_builder->CreateCall3(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), ra_f64, rc_f64, rb_f64);
+	auto res_f64 = (Value *)m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), { ra_f64, rc_f64, rb_f64 });
 	auto res_f32 = m_ir_builder->CreateFPTrunc(res_f64, m_ir_builder->getFloatTy());
 	SetFpr(frd, res_f32);
 
@@ -4228,7 +4228,7 @@ void Compiler::FNMSUBS(u32 frd, u32 fra, u32 frc, u32 frb, u32 rc) {
 	auto rb_f64 = GetFpr(frb);
 	auto rc_f64 = GetFpr(frc);
 	rb_f64 = m_ir_builder->CreateFNeg(rb_f64);
-	auto res_f64 = (Value *)m_ir_builder->CreateCall3(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), ra_f64, rc_f64, rb_f64);
+	auto res_f64 = (Value *)m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), { ra_f64, rc_f64, rb_f64 });
 	res_f64 = m_ir_builder->CreateFNeg(res_f64);
 	auto res_f32 = m_ir_builder->CreateFPTrunc(res_f64, m_ir_builder->getFloatTy());
 	SetFpr(frd, res_f32);
@@ -4245,7 +4245,7 @@ void Compiler::FNMADDS(u32 frd, u32 fra, u32 frc, u32 frb, u32 rc) {
 	auto ra_f64 = GetFpr(fra);
 	auto rb_f64 = GetFpr(frb);
 	auto rc_f64 = GetFpr(frc);
-	auto res_f64 = (Value *)m_ir_builder->CreateCall3(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), ra_f64, rc_f64, rb_f64);
+	auto res_f64 = (Value *)m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), { ra_f64, rc_f64, rb_f64 });
 	res_f64 = m_ir_builder->CreateFNeg(res_f64);
 	auto res_f32 = m_ir_builder->CreateFPTrunc(res_f64, m_ir_builder->getFloatTy());
 	SetFpr(frd, res_f32);
@@ -4539,7 +4539,7 @@ void Compiler::FMSUB(u32 frd, u32 fra, u32 frc, u32 frb, u32 rc) {
 	auto rb_f64 = GetFpr(frb);
 	auto rc_f64 = GetFpr(frc);
 	rb_f64 = m_ir_builder->CreateFNeg(rb_f64);
-	auto res_f64 = m_ir_builder->CreateCall3(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), ra_f64, rc_f64, rb_f64);
+	auto res_f64 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), { ra_f64, rc_f64, rb_f64 });
 	SetFpr(frd, res_f64);
 
 	if (rc) {
@@ -4554,7 +4554,7 @@ void Compiler::FMADD(u32 frd, u32 fra, u32 frc, u32 frb, u32 rc) {
 	auto ra_f64 = GetFpr(fra);
 	auto rb_f64 = GetFpr(frb);
 	auto rc_f64 = GetFpr(frc);
-	auto res_f64 = m_ir_builder->CreateCall3(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), ra_f64, rc_f64, rb_f64);
+	auto res_f64 = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), { ra_f64, rc_f64, rb_f64 });
 	SetFpr(frd, res_f64);
 
 	if (rc) {
@@ -4570,7 +4570,7 @@ void Compiler::FNMSUB(u32 frd, u32 fra, u32 frc, u32 frb, u32 rc) {
 	auto rb_f64 = GetFpr(frb);
 	auto rc_f64 = GetFpr(frc);
 	rc_f64 = m_ir_builder->CreateFNeg(rc_f64);
-	auto res_f64 = (Value *)m_ir_builder->CreateCall3(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), ra_f64, rc_f64, rb_f64);
+	auto res_f64 = (Value *)m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), { ra_f64, rc_f64, rb_f64 });
 	SetFpr(frd, res_f64);
 
 	if (rc) {
@@ -4587,7 +4587,7 @@ void Compiler::FNMADD(u32 frd, u32 fra, u32 frc, u32 frb, u32 rc) {
 	auto rc_f64 = GetFpr(frc);
 	rb_f64 = m_ir_builder->CreateFNeg(rb_f64);
 	rc_f64 = m_ir_builder->CreateFNeg(rc_f64);
-	auto res_f64 = (Value *)m_ir_builder->CreateCall3(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), ra_f64, rc_f64, rb_f64);
+	auto res_f64 = (Value *)m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::fmuladd, m_ir_builder->getDoubleTy()), { ra_f64, rc_f64, rb_f64 });
 	SetFpr(frd, res_f64);
 
 	if (rc) {
@@ -4776,10 +4776,10 @@ Value * Compiler::GetBit(Value * val, u32 n) {
 
 #ifdef PPU_LLVM_RECOMPILER_USE_BMI
 	if (val->getType()->isIntegerTy(32)) {
-		bit = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_bmi_pext_32), val, m_ir_builder->getInt32(1 << (31 - n)));
+		bit = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_bmi_pext_32), val, m_ir_builder->getInt32(1 << (31 - n)));
 	}
 	else if (val->getType()->isIntegerTy(64)) {
-		bit = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_bmi_pext_64), val, m_ir_builder->getInt64((u64)1 << (63 - n)));
+		bit = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_bmi_pext_64), val, m_ir_builder->getInt64((u64)1 << (63 - n)));
 	}
 	else {
 #endif
@@ -4823,10 +4823,10 @@ Value * Compiler::GetNibble(Value * val, u32 n) {
 
 #ifdef PPU_LLVM_RECOMPILER_USE_BMI
 	if (val->getType()->isIntegerTy(32)) {
-		nibble = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_bmi_pext_32), val, m_ir_builder->getInt32((u64)0xF << ((7 - n) * 4)));
+		nibble = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_bmi_pext_32), val, m_ir_builder->getInt32((u64)0xF << ((7 - n) * 4)));
 	}
 	else if (val->getType()->isIntegerTy(64)) {
-		nibble = m_ir_builder->CreateCall2(Intrinsic::getDeclaration(m_module, Intrinsic::x86_bmi_pext_64), val, m_ir_builder->getInt64((u64)0xF << ((15 - n) * 4)));
+		nibble = m_ir_builder->CreateCall(Intrinsic::getDeclaration(m_module, Intrinsic::x86_bmi_pext_64), val, m_ir_builder->getInt64((u64)0xF << ((15 - n) * 4)));
 	}
 	else {
 #endif
@@ -5207,11 +5207,11 @@ void Compiler::CreateBranch(llvm::Value * cmp_i1, llvm::Value * target_i32, bool
 			}
 
 			SetPc(target_i32);
-//			Function *fn = m_module->getFunction(fmt::format("function_0x%08X", target_address));
+			Function *fn = m_module->getFunction(fmt::format("function_0x%08X", target_address));
 			llvm::Value *execStatus;
-//			if (fn)
-//				execStatus = m_ir_builder->CreateCall2(fn, m_state.args[CompileTaskState::Args::State], m_ir_builder->getInt64(0));
-//			else
+			if (fn)
+				execStatus = m_ir_builder->CreateCall(fn, {m_state.args[CompileTaskState::Args::State], m_ir_builder->getInt64(0) });
+			else
 				execStatus = Call<u32>("execute_unknown_function", m_state.args[CompileTaskState::Args::State], m_ir_builder->getInt64(0));
 
 			llvm::BasicBlock *cputhreadexitblock = GetBasicBlockFromAddress(m_state.current_instruction_address, "early_exit");
@@ -5244,7 +5244,7 @@ void Compiler::CreateBranch(llvm::Value * cmp_i1, llvm::Value * target_i32, bool
 		else if (lk) {
 			BasicBlock *next_block = GetBasicBlockFromAddress(m_state.current_instruction_address + 4);
 
-			llvm::Value *execStatus = m_ir_builder->CreateCall2(m_execute_unknown_function, m_state.args[CompileTaskState::Args::State], m_ir_builder->getInt64(0));
+			llvm::Value *execStatus = m_ir_builder->CreateCall(m_execute_unknown_function, {m_state.args[CompileTaskState::Args::State], m_ir_builder->getInt64(0)});
 
 			llvm::BasicBlock *cputhreadexitblock = GetBasicBlockFromAddress(m_state.current_instruction_address, "early_exit");
 			llvm::Value *isCPUThreadExit = m_ir_builder->CreateICmpEQ(execStatus, m_ir_builder->getInt32(ExecutionStatus::ExecutionStatusPropagateException));
