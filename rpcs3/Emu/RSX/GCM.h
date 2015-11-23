@@ -1879,6 +1879,7 @@ namespace rsx
 	{
 		static const std::unordered_map<u32, std::function<std::string(u32)> > printing_functions =
 		{
+			{ NV4097_NO_OPERATION , [](u32) { return "(nop)"; } },
 		};
 
 
