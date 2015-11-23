@@ -47,7 +47,7 @@ before_install:
       sudo pip install cpp-coveralls requests[security];
     else
       brew update; brew update;
-      brew install glew wxwidgets llvm36;
+      brew install glew wxwidgets llvm36 cmake;
     fi;
 
 before_script:
