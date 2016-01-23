@@ -11,6 +11,11 @@ if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
 	message( FATAL_ERROR "RPCS3 can only be compiled on 64-bit platforms." )
 endif()
 
+message("CMAKE_CURRENT_SOURCE_DIR: ${CMAKE_CURRENT_SOURCE_DIR}")
+message("CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
+set(CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/ ${CMAKE_PREFIX_PATH})
+set(ZLIB_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/wxWidgets/src/zlib") # We use the zlib, that's in wxWidgets
+
 add_subdirectory( asmjit )
 add_subdirectory( libpng )
 # TODO: do real installation, including copying directory structure

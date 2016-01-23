@@ -69,6 +69,7 @@ if(NOT WIN32)
 	add_definitions(-DGLX_GLXEXT_PROTOTYPES)
 endif()
 
+find_package(PNG REQUIRED)
 find_package(wxWidgets COMPONENTS core base net aui gl xml REQUIRED)
 if(NOT MSVC)
 	if(APPLE)
@@ -88,8 +89,14 @@ if(NOT MSVC)
 endif()
 find_package(OpenGL REQUIRED)
 find_package(OpenAL REQUIRED)
-find_package(PNG REQUIRED)
 find_package(LLVM CONFIG)
+
+message("ZLIB=${ZLIB_VERSION_STRING}")
+message("ZLIB_INCLUDE=${ZLIB_INCLUDE_DIRS}")
+message("ZLIB_LIBRARIES=${ZLIB_LIBRARIES}")
+message("PNG=${PNG_VERSION_STRING}")
+message("PNG_INCLUDE=${PNG_INCLUDE_DIRS}")
+message("PNG_LIBRARIES=${PNG_LIBRARIES}")
 
 include("${wxWidgets_USE_FILE}")
 
