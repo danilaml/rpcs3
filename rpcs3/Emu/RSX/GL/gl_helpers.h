@@ -830,7 +830,8 @@ namespace gl
 		{
 			texture1D = GL_TEXTURE_1D,
 			texture2D = GL_TEXTURE_2D,
-			texture3D = GL_TEXTURE_3D
+			texture3D = GL_TEXTURE_3D,
+			textureBuffer = GL_TEXTURE_BUFFER
 		};
 
 		enum class channel_type
@@ -1129,6 +1130,33 @@ namespace gl
 			save_binding_state save(*this);
 			pixel_settings.apply();
 			__glcheck glTexSubImage2D((GLenum)get_target(), level(), 0, 0, width(), height(), (GLenum)format, (GLenum)type, src);
+		}
+
+		void copy_from(buffer buf, u32 gl_format_type, u32 offset, u32 length)
+		{
+			if (get_target() != target::textureBuffer)
+				throw;
+
+			/**
+			* There currently isn't a way to properly determine the currently bound TEXTURE_BUFFER; I think its a problem with the spec
+			* glGetInteger(GL_TEXTURE_BUFFER_BINDING, param) always returns 0, destroying the save_state mechanism
+			*/
+
+			//save_binding_state save(*this);
+
+			if (offset)
+				__glcheck glTexBufferRange((GLenum)target::textureBuffer, gl_format_type, buf.id(), offset, length);
+			else
+				__glcheck glTexBuffer((GLenum)target::textureBuffer, gl_format_type, buf.id());
+		}
+
+		void copy_from(buffer buf, u32 gl_format_type)
+		{
+			/**
+			* An easier solution to the TEXTURE_BUFFER_BINDING bug mentioned in other buffer copy function.
+			* Does not care about the binding state.
+			*/
+			__glcheck glTextureBuffer(id(), gl_format_type, buf.id());
 		}
 
 		void copy_from(const buffer& buf, texture::format format, texture::type type, class pixel_unpack_settings pixel_settings)
